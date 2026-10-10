@@ -1,0 +1,58 @@
+{
+  "packages": [
+    "npm:@narumitw/pi-plan-mode",
+    "npm:pi-rtk-optimizer",
+    "npm:pi-subagents-lite",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@dietrichgebert/ponytail",
+    "npm:pi-ast-grep",
+    "npm:pi-smart-fetch@0.3.17",
+    "npm:pi-caveman",
+    "npm:pi-background-tasks",
+    "npm:@zosmaai/pi-llm-wiki",
+    "npm:@plannotator/pi-extension",
+    "npm:pi-mcp-adapter",
+    "npm:@vigolium/piolium",
+    "npm:pi-hermes-memory",
+    "npm:pi-observational-memory",
+    "git:https://github.com/hasit/pi-community-themes",
+    "npm:@henryqw/pi-codegraph",
+    "npm:pi-hide-providers",
+    "npm:@gotgenes/pi-permission-system",
+    "npm:@henryqw/pi-undo",
+    "npm:pi-footer",
+    "npm:@langfuse/pi-observability-plugin"
+  ],
+  "skills": [
+    "~/.agents/skills/xias-data-dashboard",
+    "~/.agents/skills/xias-design-screen"
+  ],
+  "theme": "atom-one-dark",
+  "hideThinkingBlock": true,
+  "perModeModelSelection": true,
+  "modeModels": {
+    "plan": "opencode-go/glm-5.3-flash:high",
+    "build": "opencode-go/deepseek-v4.1-flash:medium"
+  },
+  "modelThinkingLevels": {
+    "opencode-go/mimo-v2.6-flash": "medium",
+    "opencode-go/deepseek-v4.1-flash": "medium",
+    "opencode-go/glm-5.3-flash": "medium"
+  },
+  "llm-wiki": {
+    "notices": false,
+    "autoRecall": false
+  },
+  "defaultProvider": "opencode-go",
+  "defaultModel": "glm-5.3-flash",
+  "lastChangelogVersion": "1.1.0",
+  "extensions": [
+    "-builtin:mcp"
+  ],
+  "defaultTools": [
+    "+grep",
+    "+find",
+    "+ls"
+  ]
+}

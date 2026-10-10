@@ -1,0 +1,9 @@
+Terse, directive work style: kicks off tasks with minimal prompts like "lets work on the next issue #63", says "continue" and "Implement the plan." without elaboration. Prefers the agent to independently investigate (read specs, explore repo, ask clarifying questions via structured question prompts) before proposing a plan. Works issue-by-issue from a GitHub-tracked backlog. <!-- created=2026-10-08, last=2026-10-08 -->
+§
+After a delivery that had bugs, expects a deep verification/audit pass before treating work as done (user: 'previously there was a lot of bugs, perform a deep analysis and testing to make sure we aren't missing anything') — a green smoke/typecheck gate alone is not sufficient evidence. Also maintains an explicit todo list and asks to 'update todos' during long tasks. <!-- created=2026-10-08, last=2026-10-08 -->
+§
+Extends the 'deep verification' expectation to end-to-end coverage: after slice work, expects E2E tests that validate the product's intent and vision, not just unit tests — user previously asked (paraphrased): what about e2e tests? evaluate the intent and the vision of the product, we need to make sure all the implemented code so far works. Explicitly maintains a todo list and says 'update todos' mid-task. <!-- created=2026-10-08, last=2026-10-08 -->
+§
+Wants ux-ui-agent-skills (XIAS, github.com/plugin87/ux-ui-agent-skills) used for UX/design work: installed globally and wired into the global agents.md so it applies automatically in every session involving any kind of UI work — not invoked ad hoc. <!-- created=2026-10-08, last=2026-10-08 -->
+§
+Terse, probing follow-up questions when investigating tradeoffs: asks short "why" or "what about" questions ("why skills mattern if they should be lazy loaded?", "is there a way we can solve this?") and expects measured analysis (measure, don't guess) rather than assumption-based answers. <!-- created=2026-10-09, last=2026-10-09 -->
