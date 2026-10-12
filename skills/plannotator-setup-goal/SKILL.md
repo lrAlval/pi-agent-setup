@@ -31,7 +31,7 @@ Use `goals/<slug>/` for both working JSON files and final docs. The JSON files a
 
 > Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 >
-> Ask the questions one at a time.
+> Ask the questions one at a time, each round rendered through the host's native question tool when one exists (pi: `ask_user_question`, batching up to 6 per call; in plan mode `plan_mode_question`, 1-3 per call; opencode: `question` tool) with your recommended answer first, plain text only as fallback.
 >
 > If a question can be answered by exploring the codebase, explore the codebase instead.
 

@@ -1,15 +1,24 @@
 ---
 name: implement
-description: "Implement a piece of work based on a spec or set of tickets."
-disable-model-invocation: true
+description: Build a backlog slice per its acceptance criteria with TDD at seams, prove-fix verification, and spine state updates. Use when a backlog/<id> task file exists.
 ---
 
-Implement the work described by the user in the spec or tickets.
+# Implement (spine-adapted)
 
-Use /tdd where possible, at pre-agreed seams.
+Read the slice. Build the slice. Prove the slice. Record the slice.
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+## Input
 
-Once done, use /code-review to review the work.
+- `backlog/<id>-*.md` (acceptance criteria are the contract)
+- `specs/state.yaml` (current position), `specs/decisions.md` (constraints)
 
-Commit your work to the current branch.
+## Protocol
+
+1. Confirm acceptance criteria; unclear scope -> scope-sharpener first.
+2. TDD at pre-agreed seams (`tdd` skill). Typecheck + single-file tests during, full suite once at end.
+3. Prove-fix (built-in, not a separate skill): re-run the original failing test, re-run the repro, run the full suite. Deliberately-broken fix must be caught here.
+4. Review: routine -> `review` agent; big PR -> `no-mistakes` on demand only (never the daily default).
+5. Record: backlog status -> done, state.yaml via session-state, commit on current branch.
+
+Bugs with unknown cause go to `diagnosing-bugs` before any fix. Repo
+writes follow the treehouse PR contract (commit -> push -> gh pr -> return).

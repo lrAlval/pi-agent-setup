@@ -243,6 +243,41 @@ if (Test-Path $linksFile) {
   Log-Warn "xias-symlinks.txt missing in sources; skipping symlink step"
 }
 
+# --- plan-mode patch chain (best effort) ----------------------------------------
+# Applies every fix-plan-mode*.mjs in order (v3 then v4); see patches/patch-registry.json.
+$patchFiles = Get-ChildItem -Path (Join-Path $PiDir "patches") -Filter "fix-plan-mode*.mjs" -ErrorAction SilentlyContinue
+if (Get-Command node -ErrorAction SilentlyContinue) {
+  $patched = 0
+  foreach ($p in $patchFiles) {
+    & node $p.FullName 2>$null
+    if ($LASTEXITCODE -eq 0) { $patched++ }
+    else { Log-Warn "plan-mode patch did not apply: $($p.Name) (re-run after first pi boot: node $($p.FullName))" }
+  }
+  if ($patched -gt 0) { Log-Ok "plan-mode patch: $patched applied or already patched" }
+} elseif ($patchFiles) {
+  Log-Warn "node missing; run manually after install: node <agentdir>\patches\fix-plan-mode*.mjs"
+}
+
+# --- vendored packages (pi/packages/*): install deps when missing -----------------
+if (Test-Path (Join-Path $PiDir "packages")) {
+  foreach ($d in (Get-ChildItem -Directory (Join-Path $PiDir "packages") -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Path (Join-Path $d.FullName "package.json"))) { continue }
+    if ((Test-Path (Join-Path $d.FullName "node_modules")) -and (-not $Force) -and (-not $Upgrade)) {
+      Log-Skip "package $($d.Name): node_modules present, reusing"; continue
+    }
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+      Push-Location $d.FullName
+      & npm install --omit=dev --no-audit --no-fund 2>$null
+      $rc = $LASTEXITCODE
+      Pop-Location
+      if ($rc -eq 0) { Log-Ok "package $($d.Name): deps installed" }
+      else { Log-Warn "package $($d.Name): npm install failed; its extension may not load" }
+    } else {
+      Log-Warn "package $($d.Name) needs deps but npm is missing; install Node.js then re-run"
+    }
+  }
+}
+
 # --- auth reminder ------------------------------------------------------------------
 if (-not (Test-Path (Join-Path $PiDir "auth.json"))) {
   Log-Info "REMINDER: provider auth is a manual step - run pi and authenticate your providers."
@@ -253,6 +288,7 @@ if (-not (Test-Path (Join-Path $PiDir "auth.json"))) {
 # --- verify ---------------------------------------------------------------------------
 if (-not (Test-Path (Join-Path $PiDir "AGENTS.md"))) { Fail "verify failed: AGENTS.md missing" }
 if (-not (Test-Path (Join-Path $PiDir "settings.json"))) { Fail "verify failed: settings.json missing" }
+if (-not (Test-Path (Join-Path $PiDir "OPINIONS.md"))) { Fail "verify failed: OPINIONS.md missing" }
 if (-not (Test-Path $KitDir)) { Fail "verify failed: kit dir missing" }
 if ($env:PI_SETUP_SKIP_PI_INSTALL) {
   Log-Ok "verify: required paths exist (pi run skipped in test mode)"

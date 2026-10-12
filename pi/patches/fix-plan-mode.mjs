@@ -3,10 +3,33 @@
 //   node /home/aiden/.pi/agent/patches/fix-plan-mode.mjs
 // Idempotent: exits 0 with "already patched" when markers are present.
 // Fails loud (non-zero + which pattern missed) on version drift.
-import { readFileSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
+//
+// v1: strip shell redirections before policy checks.
+// v2: tighten stripper to /dev/null-only targets; glob-tolerant hasShellExpansion;
+//     sed multi-range; stale-selection override (config defaultPlanTools wins).
+// v3: plan-mode yolo bash (`"bashMode": "yolo"` in pi-plan-mode.json; absent =
+//     current safe policy, unchanged default). In yolo the bash gate replaces
+//     findBlockedCommandSegment with a segment-level denylist check: only truly
+//     destructive commands block (rm, rmdir, dd, mkfs, sudo, su, kill/pkill/
+//     killall, reboot, shutdown, halt, poweroff, truncate, chmod, chown, chgrp,
+//     mv, plus force-git patterns). Subshells, $(), loops, pipes, env
+//     assignment, cp/mkdir/touch/tee, non-force git push/commit, and file
+//     redirects all run. Blocks surface as a plain yolo notice; the agent asks
+//     the user itself. local_bash and the permission system stay untouched.
+import { readFileSync, readdirSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
 
 const PKG = "/home/aiden/.pi/agent/npm/node_modules/@narumitw/pi-plan-mode";
-const CHUNK = `${PKG}/dist/chunks/chunk-MJV6WNHK.ts`;
+function resolvePolicyChunk() {
+  const root = typeof PKG === "string" ? PKG : "/home/aiden/.pi/agent/npm/node_modules/@narumitw/pi-plan-mode";
+  const dir = root + "/dist/chunks";
+  for (const f of readdirSync(dir)) {
+    if (!f.endsWith(".ts")) continue;
+    const t = readFileSync(dir + "/" + f, "utf8");
+    if (t.includes("matchesConfiguredSafeSubcommand") && t.includes("function findBlockedCommandSegment")) return dir + "/" + f;
+  }
+  throw new Error("pi-plan-mode policy chunk not found under " + dir);
+}
+const CHUNK = resolvePolicyChunk();
 const INDEX = `${PKG}/dist/index.ts`;
 const MARK = "pi-agent-setup patch v2: read-only"; // must not appear in STRIP_REDIRECTIONS
 
@@ -315,6 +338,197 @@ patchFile(INDEX, [
     "restore-clears-stale",
   ],
 ]);
+
+// ---- v3: yolo bash mode ----
+const MARK_V3 = "pi-agent-setup patch v3: yolo bash";
+
+const YOLO_HELPERS = `/* ${MARK_V3}. "bashMode": "yolo" in pi-plan-mode.json
+ * switches the bash gate to a denylist: only truly destructive commands
+ * block (plain yolo notice); everything else runs. Absent = safe policy. */
+var YOLO_BLOCKED_COMMANDS = /* @__PURE__ */ new Set([
+  "rm",
+  "rmdir",
+  "dd",
+  "mkfs",
+  "sudo",
+  "su",
+  "kill",
+  "pkill",
+  "killall",
+  "reboot",
+  "shutdown",
+  "halt",
+  "poweroff",
+  "truncate",
+  "chmod",
+  "chown",
+  "chgrp",
+  "mv"
+]);
+var YOLO_SHELL_KEYWORDS = /* @__PURE__ */ new Set([
+  "for",
+  "while",
+  "until",
+  "if",
+  "then",
+  "else",
+  "elif",
+  "fi",
+  "do",
+  "done",
+  "in",
+  "case",
+  "esac",
+  "function",
+  "time",
+  "coproc",
+  "select"
+]);
+var YOLO_NOTICE = "plan mode yolo: destructive \u2014 ask the user";
+function splitYoloSegments(command) {
+  const trimmed = command.trim();
+  if (!trimmed || /[\\r\\n\`]/.test(trimmed)) return void 0;
+  const segments = [];
+  let quote;
+  let escaped = false;
+  let start = 0;
+  const push = (end) => {
+    const segment = trimmed.slice(start, end).trim();
+    if (!segment) return false;
+    segments.push(segment);
+    return true;
+  };
+  for (let index = 0; index < trimmed.length; index += 1) {
+    const character = trimmed[index];
+    if (escaped) { escaped = false; continue; }
+    if (character === "\\\\" && quote !== "'") { escaped = true; continue; }
+    if (quote) { if (character === quote) quote = void 0; continue; }
+    if (character === "'" || character === '"') { quote = character; continue; }
+    if (character === ";" || character === "|" || character === "&") {
+      if (!push(index)) return void 0;
+      const next = trimmed[index + 1];
+      if ((character === "|" || character === "&") && next === character) index += 1;
+      start = index + 1;
+    }
+  }
+  if (quote || escaped) return void 0;
+  if (!push(trimmed.length)) return void 0;
+  return segments;
+}
+function isYoloBlockedGit(args) {
+  const rest = [];
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === "-C") { i += 1; continue; }
+    rest.push(args[i]);
+  }
+  const sub = (rest.find((a) => !a.startsWith("-")) ?? "").toLowerCase();
+  if (sub === "push" && rest.some((a) => a === "--force" || a === "-f" || a === "--delete")) return true;
+  if (sub === "reset" && rest.includes("--hard")) return true;
+  if (sub === "clean") return true;
+  if (sub === "checkout" && rest.includes("--")) return true;
+  if (sub === "branch" && rest.includes("-D")) return true;
+  return false;
+}
+function isYoloBlockedSegment(segment) {
+  const tokens = shellWords(segment);
+  if (!tokens || tokens.length === 0) return true;
+  let idx = 0;
+  while (idx < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[idx] ?? "")) idx += 1;
+  if (idx >= tokens.length) return false;
+  const command = (tokens[idx] ?? "").toLowerCase().split("/").pop();
+  if (!command) return true;
+  if (YOLO_SHELL_KEYWORDS.has(command)) return false;
+  if (YOLO_BLOCKED_COMMANDS.has(command)) return true;
+  if (command === "git") return isYoloBlockedGit(tokens.slice(idx + 1));
+  return false;
+}
+function findYoloBlockedSegment(command) {
+  const segments = splitYoloSegments(command);
+  if (!segments || segments.length === 0) return command.trim() || "(empty command)";
+  const hit = segments.find((segment) => isYoloBlockedSegment(segment));
+  if (hit === void 0) return void 0;
+  return YOLO_NOTICE + ": " + hit;
+}`;
+
+function ensureYoloChunk() {
+  let text = readFileSync(CHUNK, "utf8");
+  if (text.includes(MARK_V3)) {
+    console.log(`skip ${CHUNK}: v3 already applied`);
+    return;
+  }
+  if (!existsSync(CHUNK + ".orig")) copyFileSync(CHUNK, CHUNK + ".orig");
+  text = replaceOnce(CHUNK, text,
+    `  if (Object.hasOwn(value, "safeSubcommands")) {
+    const safeSubcommands = normalizeSafeSubcommands(Reflect.get(value, "safeSubcommands"));
+    if (!safeSubcommands) return void 0;
+    settings.safeSubcommands = safeSubcommands;
+  }
+  return settings;`,
+    `  if (Object.hasOwn(value, "safeSubcommands")) {
+    const safeSubcommands = normalizeSafeSubcommands(Reflect.get(value, "safeSubcommands"));
+    if (!safeSubcommands) return void 0;
+    settings.safeSubcommands = safeSubcommands;
+  }
+  if (Object.hasOwn(value, "bashMode")) {
+    const bashMode = Reflect.get(value, "bashMode");
+    if (bashMode !== "yolo") return void 0;
+    settings.bashMode = bashMode;
+  }
+  return settings;`,
+    "yolo-settings-normalize");
+  text = replaceOnce(CHUNK, text,
+    `function findBlockedCommandSegment(command, safeSubcommands = {}, workingDirectory, platform = process.platform) {`,
+    `${YOLO_HELPERS}
+function findBlockedCommandSegment(command, safeSubcommands = {}, workingDirectory, platform = process.platform) {`,
+    "yolo-helpers-insert");
+  text = replaceOnce(CHUNK, text,
+    `  readCommand,
+  findBlockedCommandSegment,
+  findBlockedPowerShellCommandSegment,`,
+    `  readCommand,
+  findBlockedCommandSegment,
+  findYoloBlockedSegment,
+  findBlockedPowerShellCommandSegment,`,
+    "yolo-export");
+  if (process.exitCode) {
+    console.error(`NOT WRITTEN: ${CHUNK}`);
+    return;
+  }
+  writeFileSync(CHUNK, text);
+  console.log(`patched v3 ${CHUNK}`);
+}
+
+function ensureYoloIndex() {
+  let text = readFileSync(INDEX, "utf8");
+  if (text.includes(MARK_V3)) {
+    console.log(`skip ${INDEX}: v3 already applied`);
+    return;
+  }
+  if (!existsSync(INDEX + ".orig")) copyFileSync(INDEX, INDEX + ".orig");
+  text = replaceOnce(INDEX, text,
+    `  findBlockedCommandSegment,
+  findBlockedPowerShellCommandSegment,`,
+    `  findBlockedCommandSegment,
+  findYoloBlockedSegment,
+  findBlockedPowerShellCommandSegment,`,
+    "yolo-import");
+  text = replaceOnce(INDEX, text,
+    `    if (event.toolName === "bash") {
+      const blocked = findBlockedCommandSegment(readCommand(event.input), settings.safeSubcommands, ctx.cwd);`,
+    `    if (event.toolName === "bash") {
+      /* ${MARK_V3}: denylist when bashMode is yolo, safe policy otherwise. */
+      const blocked = settings.bashMode === "yolo" ? findYoloBlockedSegment(readCommand(event.input)) : findBlockedCommandSegment(readCommand(event.input), settings.safeSubcommands, ctx.cwd);`,
+    "yolo-bash-gate");
+  if (process.exitCode) {
+    console.error(`NOT WRITTEN: ${INDEX}`);
+    return;
+  }
+  writeFileSync(INDEX, text);
+  console.log(`patched v3 ${INDEX}`);
+}
+
+ensureYoloChunk();
+ensureYoloIndex();
 
 if (process.exitCode) {
   console.error("PATCH INCOMPLETE — restore *.orig if a file was half-written");

@@ -16,6 +16,7 @@
 #   - One timestamped backup of a pre-existing ~/.pi/agent, on the first run
 #     only. Re-runs never create another backup.
 #   - flock-guarded: a second concurrent run exits cleanly with "already running".
+#   - Vendored packages under pi/packages/ get one npm install when node_modules is missing.
 #   - Fast path: when the manifest fingerprint is unchanged and verification
 #     passes, prints "already installed (manifest <hash>), nothing to do".
 #
@@ -304,13 +305,39 @@ else
   warn "xias-symlinks.txt missing in sources; skipping symlink step"
 fi
 
-# --- plan-mode patch (best effort) ----------------------------------------------
-PATCH="$PI_DIR/patches/fix-plan-mode.mjs"
-if [ -f "$PATCH" ] && command -v node >/dev/null 2>&1; then
-  if node "$PATCH" >/dev/null 2>&1; then ok "plan-mode patch: applied or already patched";
-  else warn "plan-mode patch did not apply (package likely not installed yet; re-run after first pi boot: node $PATCH)"; fi
-elif [ -f "$PATCH" ]; then
-  warn "node missing; run manually after install: node $PATCH"
+# --- vendored packages (pi/packages/*): install deps when missing -----------------
+# pi-eta is peer-only (no install needed); packages with real dependencies
+# (pi-observability-plugin) get one npm install. Skipped when node_modules exists.
+if [ -d "$PI_DIR/packages" ]; then
+  for PKG in "$PI_DIR"/packages/*/; do
+    [ -f "${PKG}package.json" ] || continue
+    name="$(basename "$PKG")"
+    if [ -d "${PKG}node_modules" ] && [ "$FORCE" -eq 0 ] && [ "$UPGRADE" -eq 0 ]; then
+      skip "package $name: node_modules present, reusing"
+    elif command -v npm >/dev/null 2>&1; then
+      if (cd "$PKG" && npm install --omit=dev --no-audit --no-fund >/dev/null 2>&1); then
+        ok "package $name: deps installed"
+      else
+        warn "package $name: npm install failed; its extension may not load"
+      fi
+    else
+      warn "package $name needs deps but npm is missing; install Node.js then re-run"
+    fi
+  done
+fi
+
+# --- plan-mode patch chain (best effort) ----------------------------------------
+# Applies every fix-plan-mode*.mjs in order (v3 then v4); see patches/patch-registry.json.
+if command -v node >/dev/null 2>&1; then
+  patched=0
+  for PATCH in "$PI_DIR"/patches/fix-plan-mode*.mjs; do
+    [ -f "$PATCH" ] || continue
+    if node "$PATCH" >/dev/null 2>&1; then patched=$((patched+1));
+    else warn "plan-mode patch did not apply: $PATCH (package likely not installed yet; re-run after first pi boot: node $PATCH)"; fi
+  done
+  [ "$patched" -gt 0 ] && ok "plan-mode patch: $patched applied or already patched"
+else
+  warn "node missing; run manually after install: node $PI_DIR/patches/fix-plan-mode*.mjs"
 fi
 
 # --- auth reminder ---------------------------------------------------------------
@@ -323,6 +350,7 @@ fi
 # --- verify ----------------------------------------------------------------------
 [ -f "$PI_DIR/AGENTS.md" ] || die "verify failed: $PI_DIR/AGENTS.md missing"
 [ -f "$PI_DIR/settings.json" ] || die "verify failed: $PI_DIR/settings.json missing"
+[ -f "$PI_DIR/OPINIONS.md" ] || die "verify failed: $PI_DIR/OPINIONS.md missing"
 [ -d "$KIT_DIR" ] || die "verify failed: kit dir missing"
 if [ -z "${PI_SETUP_SKIP_PI_INSTALL:-}" ]; then
   command -v pi >/dev/null 2>&1 || die "verify failed: pi missing"

@@ -1,0 +1,801 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import {
+  extractText,
+  readInheritedParent,
+  parseTraceparent,
+  buildCostDetails,
+  describeImage,
+  extractImages,
+  createSecretRedactor,
+  renderContentWithImageMarkers,
+  extractToolCalls,
+  toMultimodalContent,
+  buildUsageDetails,
+  buildHistoryInput,
+  markDataUris,
+  extractThinking,
+  toChatMlMessage,
+  type ChatMlMessage,
+  type PiUsage,
+} from "../src/index.ts";
+
+describe("createSecretRedactor", () => {
+  it("redacts Langfuse key tokens in plain strings", () => {
+    const redact = createSecretRedactor();
+    assert.equal(
+      redact("key is sk-lf-abc123 and pk-lf-def456"),
+      "key is [redacted-langfuse-secret] and [redacted-langfuse-secret]",
+    );
+  });
+
+  it("redacts configured literal secrets", () => {
+    const redact = createSecretRedactor("super-secret-token");
+    assert.equal(redact("token: super-secret-token"), "token: [redacted-langfuse-secret]");
+  });
+
+  it("escapes regex metacharacters in configured secrets", () => {
+    const redact = createSecretRedactor("we+rd(secret)$");
+    assert.equal(redact("x we+rd(secret)$ y"), "x [redacted-langfuse-secret] y");
+  });
+
+  it("recurses through nested objects and arrays", () => {
+    const redact = createSecretRedactor();
+    const redacted = redact({ a: ["sk-lf-x1"], b: { c: "pk-lf-y2" } }) as {
+      a: string[];
+      b: { c: string };
+    };
+    assert.equal(redacted.a[0], "[redacted-langfuse-secret]");
+    assert.equal(redacted.b.c, "[redacted-langfuse-secret]");
+  });
+
+  it("collapses circular structures to a marker", () => {
+    const obj: Record<string, unknown> = { name: "sk-lf-zzz" };
+    obj.self = obj;
+    const redact = createSecretRedactor();
+    const redacted = redact(obj) as { name: string; self: unknown };
+    assert.equal(redacted.name, "[redacted-langfuse-secret]");
+    assert.equal(redacted.self, "[circular-ref]");
+  });
+
+  it("does not falsely flag the same object in two branches as circular", () => {
+    const shared = { v: "ok" };
+    const redact = createSecretRedactor();
+    const redacted = redact({ a: shared, b: shared }) as { a: { v: string }; b: { v: string } };
+    assert.equal(redacted.a.v, "ok");
+    assert.equal(redacted.b.v, "ok");
+  });
+
+  it("keeps a literal __proto__ key as data instead of touching the prototype", () => {
+    const redact = createSecretRedactor();
+    const payload = JSON.parse('{"__proto__": { "x": "sk-lf-hidden" }, "safe": 1 }');
+    const redacted = redact(payload) as Record<string, unknown>;
+    assert.equal(Object.getPrototypeOf(redacted), Object.prototype);
+    assert.deepEqual(Object.getOwnPropertyDescriptor(redacted, "__proto__")?.value, {
+      x: "[redacted-langfuse-secret]",
+    });
+    assert.equal(redacted.safe, 1);
+  });
+
+  it("leaves non-strings untouched", () => {
+    const redact = createSecretRedactor();
+    assert.deepEqual(redact({ n: 42, b: true, x: null }), { n: 42, b: true, x: null });
+  });
+});
+
+describe("extractText / extractToolCalls", () => {
+  const content = [
+    { type: "text", text: "Hello " },
+    { type: "thinking", thinking: "hmm" },
+    { type: "toolCall", id: "call_1", name: "bash", arguments: { command: "ls" } },
+    { type: "text", text: "world" },
+  ];
+
+  it("joins only text parts", () => {
+    assert.equal(extractText(content), "Hello world");
+  });
+
+  it("accepts plain strings and rejects non-arrays", () => {
+    assert.equal(extractText("plain"), "plain");
+    assert.equal(extractText(undefined), "");
+    assert.equal(extractText({}), "");
+  });
+
+  it("extracts tool calls in the nested shape, without the arguments", () => {
+    assert.deepEqual(extractToolCalls(content), [
+      { id: "call_1", type: "function", function: { name: "bash" } },
+    ]);
+    assert.ok(!JSON.stringify(extractToolCalls(content)).includes("ls"));
+  });
+});
+
+describe("buildUsageDetails / buildCostDetails", () => {
+  const usage: PiUsage = {
+    input: 2,
+    output: 264,
+    cacheRead: 2267,
+    cacheWrite: 36,
+    cost: { input: 0.00001, output: 0.0066, cacheRead: 0.0011335, cacheWrite: 0.000225, total: 0.0079685 },
+  };
+
+  it("maps pi usage to canonical Langfuse keys (cache split, no double counting)", () => {
+    assert.deepEqual(buildUsageDetails(usage), {
+      input: 2,
+      output: 264,
+      cache_read_input_tokens: 2267,
+      cache_creation_input_tokens: 36,
+    });
+  });
+
+  it("omits zero values", () => {
+    assert.deepEqual(buildUsageDetails({ input: 10, output: 0, cacheRead: 0, cacheWrite: 0 }), { input: 10 });
+  });
+
+  it("returns undefined for all-zero usage", () => {
+    assert.equal(buildUsageDetails({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }), undefined);
+  });
+
+  it("maps cost incl. cache buckets", () => {
+    assert.deepEqual(buildCostDetails(usage), {
+      total: 0.0079685,
+      input: 0.00001,
+      output: 0.0066,
+      cache_read_input_tokens: 0.0011335,
+      cache_creation_input_tokens: 0.000225,
+    });
+  });
+
+  it("keeps cost keys mirroring usage keys so Langfuse can join them", () => {
+    const usageKeys = Object.keys(buildUsageDetails(usage) ?? {});
+    const costKeys = Object.keys(buildCostDetails(usage) ?? {}).filter((k) => k !== "total");
+    for (const key of costKeys) {
+      assert.ok(usageKeys.includes(key), `cost key "${key}" has no matching usage key`);
+    }
+  });
+
+  // Asserting only cost ⊆ usage let the reasoning split ship a usage bucket
+  // with no cost bucket, so the mirror must hold in both directions.
+  it("mirrors usage and cost keys in both directions, reasoning included", () => {
+    const withReasoning: PiUsage = {
+      input: 500,
+      output: 300,
+      cacheRead: 100,
+      cacheWrite: 50,
+      reasoning: 200,
+      cost: { input: 0.001, output: 0.003, cacheRead: 0.00002, cacheWrite: 0.0001875, total: 0.0042075 },
+    };
+    const usageKeys = Object.keys(buildUsageDetails(withReasoning) ?? {}).sort();
+    const costKeys = Object.keys(buildCostDetails(withReasoning) ?? {})
+      .filter((k) => k !== "total")
+      .sort();
+    assert.deepEqual(costKeys, usageKeys);
+  });
+
+  it("splits the output cost proportionally and keeps the total exact", () => {
+    const details = buildCostDetails({
+      input: 500,
+      output: 300,
+      cacheRead: 0,
+      cacheWrite: 0,
+      reasoning: 200,
+      cost: { input: 0.001, output: 0.003, cacheRead: 0, cacheWrite: 0, total: 0.004 },
+    });
+    // $0.003 for 300 tokens = $0.00001/token: 100 -> $0.001, 200 -> $0.002.
+    assert.ok(Math.abs((details?.output ?? 0) - 0.001) < 1e-12);
+    assert.ok(Math.abs((details?.output_reasoning_tokens ?? 0) - 0.002) < 1e-12);
+    // Derived by subtraction, so the two buckets must re-sum exactly.
+    assert.equal((details?.output ?? 0) + (details?.output_reasoning_tokens ?? 0), 0.003);
+  });
+
+  it("implies the same per-token rate for both output buckets", () => {
+    const usageWithReasoning: PiUsage = {
+      input: 0,
+      output: 587,
+      cacheRead: 0,
+      cacheWrite: 0,
+      reasoning: 229,
+      cost: { input: 0, output: 0.008805, cacheRead: 0, cacheWrite: 0, total: 0.008805 },
+    };
+    const u = buildUsageDetails(usageWithReasoning) ?? {};
+    const c = buildCostDetails(usageWithReasoning) ?? {};
+    const outputRate = (c.output ?? 0) / (u.output ?? 1);
+    const reasoningRate = (c.output_reasoning_tokens ?? 0) / (u.output_reasoning_tokens ?? 1);
+    assert.ok(Math.abs(outputRate - reasoningRate) < 1e-15, `${outputRate} != ${reasoningRate}`);
+    // 15 USD / 1M tokens, the mock rate card.
+    assert.ok(Math.abs(outputRate - 15 / 1e6) < 1e-15);
+  });
+
+  it("prices the whole output under one key when the reasoning count is inconsistent", () => {
+    const details = buildCostDetails({
+      input: 0,
+      output: 100,
+      cacheRead: 0,
+      cacheWrite: 0,
+      reasoning: 300,
+      cost: { input: 0, output: 0.0015, cacheRead: 0, cacheWrite: 0, total: 0.0015 },
+    });
+    assert.deepEqual(details, { total: 0.0015, output: 0.0015 });
+  });
+
+  it("omits cost details entirely when pi has no pricing (server-side pricing takes over)", () => {
+    assert.equal(buildCostDetails({ input: 1, output: 1, cacheRead: 0, cacheWrite: 0 }), undefined);
+    assert.equal(
+      buildCostDetails({
+        input: 1,
+        output: 1,
+        cacheRead: 0,
+        cacheWrite: 0,
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+      }),
+      undefined,
+    );
+  });
+
+  it("splits reasoning tokens out of output so the buckets stay exclusive", () => {
+    assert.deepEqual(
+      buildUsageDetails({ input: 500, output: 300, cacheRead: 0, cacheWrite: 0, reasoning: 200 }),
+      { input: 500, output: 100, output_reasoning_tokens: 200 },
+    );
+  });
+
+  it("keeps output intact when a provider reports inconsistent reasoning counts", () => {
+    assert.deepEqual(
+      buildUsageDetails({ input: 10, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: 9 }),
+      { input: 10, output: 5 },
+    );
+  });
+
+  it("ignores a zero reasoning count from providers that always report the field", () => {
+    assert.deepEqual(
+      buildUsageDetails({ input: 10, output: 20, cacheRead: 0, cacheWrite: 0, reasoning: 0 }),
+      { input: 10, output: 20 },
+    );
+  });
+
+  it("emits only the reasoning bucket when all output tokens are reasoning", () => {
+    // A model can think and write no text. Then the result has no `output` key.
+    assert.deepEqual(
+      buildUsageDetails({ input: 10, output: 50, cacheRead: 0, cacheWrite: 0, reasoning: 50 }),
+      { input: 10, output_reasoning_tokens: 50 },
+    );
+  });
+});
+
+describe("extractImages", () => {
+  it("returns image parts and ignores everything else", () => {
+    const content = [
+      { type: "text", text: "look:" },
+      { type: "image", data: "aGVsbG8=", mimeType: "image/png" },
+      { type: "toolCall", id: "t1", name: "bash" },
+      { type: "image", data: 42, mimeType: "image/png" }, // malformed: non-string data
+    ];
+    assert.deepEqual(extractImages(content), [
+      { type: "image", data: "aGVsbG8=", mimeType: "image/png" },
+    ]);
+  });
+
+  it("returns [] for strings and non-arrays", () => {
+    assert.deepEqual(extractImages("just text"), []);
+    assert.deepEqual(extractImages(undefined), []);
+  });
+});
+
+describe("toMultimodalContent", () => {
+  it("stays a plain string when there are no images", () => {
+    assert.equal(toMultimodalContent("hi", []), "hi");
+    assert.equal(toMultimodalContent("hi", undefined), "hi");
+  });
+
+  it("emits text + data-URI image parts so the span processor uploads media", () => {
+    const parts = toMultimodalContent("what is this?", [
+      { type: "image", data: "aGVsbG8=", mimeType: "image/png" },
+    ]);
+    assert.deepEqual(parts, [
+      { type: "text", text: "what is this?" },
+      { type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } },
+    ]);
+  });
+
+  it("omits the text part when the text is empty (image-only tool results)", () => {
+    const parts = toMultimodalContent("", [
+      { type: "image", data: "aGVsbG8=", mimeType: "image/webp" },
+    ]);
+    assert.deepEqual(parts, [
+      { type: "image_url", image_url: { url: "data:image/webp;base64,aGVsbG8=" } },
+    ]);
+  });
+
+  it("drops images the media regex would truncate, keeping the text", () => {
+    // URL-safe base64 makes the processor match a prefix and upload garbage.
+    assert.equal(toMultimodalContent("hi", [{ type: "image", data: "aGV-bG8_", mimeType: "image/png" }]), "hi");
+    // A mime type with parameters breaks the `data:[^;]+;base64,` match.
+    assert.equal(
+      toMultimodalContent("hi", [{ type: "image", data: "aGVsbG8=", mimeType: "image/svg+xml;charset=utf-8" }]),
+      "hi",
+    );
+    assert.equal(toMultimodalContent("hi", [{ type: "image", data: "", mimeType: "image/png" }]), "hi");
+  });
+
+  it("tolerates wrapped base64 by stripping whitespace", () => {
+    const parts = toMultimodalContent("", [{ type: "image", data: "aGVs\nbG8=", mimeType: "image/png" }]);
+    assert.deepEqual(parts, [
+      { type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } },
+    ]);
+  });
+});
+
+describe("describeImage / renderContentWithImageMarkers", () => {
+  const png = { type: "image" as const, data: "a".repeat(4096), mimeType: "image/png" };
+
+  it("reports the decoded size in KB", () => {
+    assert.equal(describeImage(png), "[image image/png ~3KB]");
+  });
+
+  it("falls back when the mime type is missing", () => {
+    assert.equal(describeImage({ type: "image", data: "aGVsbG8=", mimeType: "" }), "[image unknown type ~0KB]");
+  });
+
+  it("replaces image parts with markers and keeps the surrounding text", () => {
+    assert.equal(
+      renderContentWithImageMarkers([
+        { type: "text", text: "Read image file [image/png]" },
+        png,
+      ]),
+      "Read image file [image/png]\n[image image/png ~3KB]",
+    );
+  });
+
+  it("renders an image-only result as a marker rather than nothing", () => {
+    // Without this the follow-up generation would read "tool returned nothing".
+    assert.equal(renderContentWithImageMarkers([png]), "[image image/png ~3KB]");
+  });
+
+  it("never emits base64", () => {
+    assert.ok(!renderContentWithImageMarkers([png]).includes(png.data.slice(0, 32)));
+  });
+});
+
+describe("malformed image parts (untyped tool results)", () => {
+  it("describeImage never throws and omits the size for non-string data", () => {
+    assert.equal(describeImage({ data: 42, mimeType: "image/png" }), "[image image/png]");
+    assert.equal(describeImage({}), "[image unknown type]");
+    assert.equal(describeImage({ data: "", mimeType: "image/png" }), "[image image/png]");
+  });
+
+  it("renderContentWithImageMarkers survives malformed parts", () => {
+    const out = renderContentWithImageMarkers([
+      { type: "image" }, // no data at all
+      { type: "image", data: 42, mimeType: "image/png" },
+      { type: "text", text: 7 }, // non-string text
+      { type: "text", text: "ok" },
+    ]);
+    assert.equal(out, "[image unknown type]\n[image image/png]\nok");
+  });
+});
+
+describe("readInheritedParent", () => {
+  const traceId = "0af7651916cd43dd8448eb211c80319c";
+  const spanId = "b7ad6b7169203331";
+
+  it("returns undefined without propagated ids (the normal top-level run)", () => {
+    assert.equal(readInheritedParent({}), undefined);
+  });
+
+  it("reads a remote parent span context plus the parent session", () => {
+    const parent = readInheritedParent({
+      LANGFUSE_PI_PARENT_TRACE_ID: traceId,
+      LANGFUSE_PI_PARENT_SPAN_ID: spanId,
+      LANGFUSE_PI_PARENT_SESSION_ID: "sess-1",
+      LANGFUSE_PI_PARENT_DEPTH: "2",
+    });
+    assert.equal(parent?.spanContext.traceId, traceId);
+    assert.equal(parent?.spanContext.spanId, spanId);
+    assert.equal(parent?.spanContext.isRemote, true);
+    assert.equal(parent?.sessionId, "sess-1");
+    assert.equal(parent?.depth, 2);
+  });
+
+  it("rejects malformed ids instead of attaching spans to a bogus trace", () => {
+    assert.equal(readInheritedParent({ LANGFUSE_PI_PARENT_TRACE_ID: traceId }), undefined);
+    assert.equal(readInheritedParent({ LANGFUSE_PI_PARENT_SPAN_ID: spanId }), undefined);
+    assert.equal(readInheritedParent({ LANGFUSE_PI_PARENT_TRACE_ID: "nope", LANGFUSE_PI_PARENT_SPAN_ID: spanId }), undefined);
+    assert.equal(readInheritedParent({ LANGFUSE_PI_PARENT_TRACE_ID: traceId, LANGFUSE_PI_PARENT_SPAN_ID: "short" }), undefined);
+  });
+
+  it("rejects the all-zero ids that OTel defines as invalid", () => {
+    assert.equal(
+      readInheritedParent({ LANGFUSE_PI_PARENT_TRACE_ID: "0".repeat(32), LANGFUSE_PI_PARENT_SPAN_ID: spanId }),
+      undefined,
+    );
+    assert.equal(
+      readInheritedParent({ LANGFUSE_PI_PARENT_TRACE_ID: traceId, LANGFUSE_PI_PARENT_SPAN_ID: "0".repeat(16) }),
+      undefined,
+    );
+  });
+
+  it("defaults depth to 0 when it is missing or junk", () => {
+    const base = { LANGFUSE_PI_PARENT_TRACE_ID: traceId, LANGFUSE_PI_PARENT_SPAN_ID: spanId };
+    assert.equal(readInheritedParent(base)?.depth, 0);
+    assert.equal(readInheritedParent({ ...base, LANGFUSE_PI_PARENT_DEPTH: "abc" })?.depth, 0);
+  });
+
+  it("reads a W3C traceparent, which is the form a launcher's OTel SDK hands it", () => {
+    const parent = readInheritedParent({
+      LANGFUSE_PI_TRACEPARENT: `00-${traceId}-${spanId}-01`,
+      LANGFUSE_PI_PARENT_SESSION_ID: "sess-app",
+    });
+    assert.equal(parent?.spanContext.traceId, traceId);
+    assert.equal(parent?.spanContext.spanId, spanId);
+    assert.equal(parent?.spanContext.isRemote, true);
+    assert.equal(parent?.sessionId, "sess-app");
+  });
+
+  it("resolves parent source and trace ownership per input shape", () => {
+    const pair = { LANGFUSE_PI_PARENT_TRACE_ID: traceId, LANGFUSE_PI_PARENT_SPAN_ID: spanId };
+    const tp = { LANGFUSE_PI_TRACEPARENT: `00-${traceId}-${spanId}-01` };
+    const cases: Array<[string, NodeJS.ProcessEnv, "subagent" | "attached", boolean]> = [
+      ["the id pair is what publishParentContext writes", pair, "subagent", false],
+      ["a traceparent can only come from outside pi", tp, "attached", true],
+      ["a malformed traceparent still falls back to the pair", { ...pair, LANGFUSE_PI_TRACEPARENT: "junk" }, "subagent", false],
+      ["a subagent inherits external ownership without becoming attached", { ...pair, LANGFUSE_PI_PARENT_EXTERNAL_TRACE: "1" }, "subagent", true],
+      ["and an explicit 0 does not claim it", { ...pair, LANGFUSE_PI_PARENT_EXTERNAL_TRACE: "0" }, "subagent", false],
+    ];
+    for (const [why, env, source, externalTrace] of cases) {
+      const parent = readInheritedParent(env);
+      assert.equal(parent?.source, source, why);
+      assert.equal(parent?.externalTrace, externalTrace, why);
+    }
+  });
+
+  it("lets the traceparent win over the explicit pair", () => {
+    const other = "1111111111111111111111111111111a";
+    const parent = readInheritedParent({
+      LANGFUSE_PI_TRACEPARENT: `00-${traceId}-${spanId}-01`,
+      LANGFUSE_PI_PARENT_TRACE_ID: other,
+      LANGFUSE_PI_PARENT_SPAN_ID: "cccccccccccccccc",
+    });
+    assert.equal(parent?.spanContext.traceId, traceId);
+    assert.equal(parent?.spanContext.spanId, spanId);
+  });
+
+  it("falls back to the pair when the traceparent is malformed", () => {
+    const parent = readInheritedParent({
+      LANGFUSE_PI_TRACEPARENT: "not-a-traceparent",
+      LANGFUSE_PI_PARENT_TRACE_ID: traceId,
+      LANGFUSE_PI_PARENT_SPAN_ID: spanId,
+    });
+    assert.equal(parent?.spanContext.traceId, traceId);
+    assert.equal(parent?.spanContext.spanId, spanId);
+  });
+
+  it("ignores a bare TRACEPARENT, which an instrumented parent exports at us", () => {
+    assert.equal(readInheritedParent({ TRACEPARENT: `00-${traceId}-${spanId}-01` }), undefined);
+    assert.equal(readInheritedParent({ traceparent: `00-${traceId}-${spanId}-01` }), undefined);
+  });
+});
+
+describe("parseTraceparent", () => {
+  const traceId = "0af7651916cd43dd8448eb211c80319c";
+  const spanId = "b7ad6b7169203331";
+
+  it("parses the version-00 form, trimmed and case-folded", () => {
+    assert.deepEqual(parseTraceparent(`00-${traceId}-${spanId}-01`), { traceId, spanId });
+    assert.deepEqual(parseTraceparent(`  00-${traceId.toUpperCase()}-${spanId.toUpperCase()}-01  `), {
+      traceId,
+      spanId,
+    });
+  });
+
+  it("is a tolerant reader on the flags, so an unsampled launcher span still nests", () => {
+    assert.deepEqual(parseTraceparent(`00-${traceId}-${spanId}-00`), { traceId, spanId });
+  });
+
+  it("accepts a future version and ignores the fields it appends", () => {
+    for (const header of [
+      `01-${traceId}-${spanId}-01`,
+      `cc-${traceId}-${spanId}-01`,
+      `01-${traceId}-${spanId}-01-somethingnew`,
+      `02-${traceId}-${spanId}-01-a-b-c`,
+    ]) {
+      assert.deepEqual(parseTraceparent(header), { traceId, spanId }, header);
+    }
+  });
+
+  it("still rejects trailing fields at version 00, which defines exactly four", () => {
+    assert.equal(parseTraceparent(`00-${traceId}-${spanId}-01-extra`), undefined);
+  });
+
+  it("refuses version ff, which the spec forbids", () => {
+    assert.equal(parseTraceparent(`ff-${traceId}-${spanId}-01`), undefined);
+    assert.equal(parseTraceparent(`FF-${traceId}-${spanId}-01`), undefined);
+  });
+
+
+  it("rejects the all-zero ids an idle OTel launcher emits", () => {
+    assert.equal(parseTraceparent(`00-${"0".repeat(32)}-${spanId}-01`), undefined);
+    assert.equal(parseTraceparent(`00-${traceId}-${"0".repeat(16)}-01`), undefined);
+  });
+
+  it("rejects junk without throwing", () => {
+    for (const bad of [
+      "",
+      "-",
+      "not-a-traceparent",
+      `00-${traceId}-${spanId}`,
+      `00-${traceId}-${spanId}-01-extra`,
+      `00-xyz-${spanId}-01`,
+      `00-${traceId}-short-01`,
+      `00-${traceId.slice(0, 31)}-${spanId}-01`,
+      `0-${traceId}-${spanId}-01`,
+    ]) {
+      assert.equal(parseTraceparent(bad), undefined, `must reject ${JSON.stringify(bad)}`);
+    }
+  });
+});
+
+describe("markDataUris", () => {
+  it("leaves plain text untouched, however long", () => {
+    assert.equal(markDataUris("hello"), "hello");
+    const long = "x".repeat(120_000);
+    assert.equal(markDataUris(long), long);
+  });
+
+  it("collapses a data URI to a size marker", () => {
+    const uri = `data:image/png;base64,${"A".repeat(4000)}`;
+    const marked = markDataUris(`before ${uri} after`);
+    assert.ok(!marked.includes("AAAA"), "no base64 may survive into a history copy");
+    assert.equal(marked, "before [data uri ~2KB] after");
+  });
+});
+
+describe("toChatMlMessage", () => {
+  it("renders a user message from content parts, images as markers", () => {
+    const message = toChatMlMessage({
+      role: "user",
+      content: [
+        { type: "text", text: "look at this" },
+        { type: "image", data: "QUJD", mimeType: "image/png" },
+      ],
+    });
+    assert.deepEqual(message, { role: "user", content: "look at this\n[image image/png ~0KB]" });
+  });
+
+  it("keeps a plain string user content as it is", () => {
+    assert.deepEqual(toChatMlMessage({ role: "user", content: "hi" }), { role: "user", content: "hi" });
+  });
+
+  it("carries the assistant text and its tool calls with serialized arguments", () => {
+    const message = toChatMlMessage({
+      role: "assistant",
+      content: [
+        { type: "text", text: "Looking. " },
+        { type: "toolCall", id: "call_1", name: "bash", arguments: { command: "ls" } },
+      ],
+    });
+    assert.deepEqual(message, {
+      role: "assistant",
+      content: "Looking. ",
+      tool_calls: [
+        { id: "call_1", type: "function", function: { name: "bash", arguments: '{"command":"ls"}' } },
+      ],
+    });
+  });
+
+  it("redacts Langfuse keys out of tool call arguments", () => {
+    const message = toChatMlMessage({
+      role: "assistant",
+      content: [{ type: "toolCall", id: "c", name: "bash", arguments: { command: "echo sk-lf-deadbeef" } }],
+    });
+    const args =
+      (message as { tool_calls?: Array<{ function?: { arguments?: string } }> }).tool_calls?.[0]?.function
+        ?.arguments ?? "";
+    assert.ok(!args.includes("sk-lf-deadbeef"), "a secret must not reach the history");
+    assert.match(args, /redacted-langfuse-secret/);
+  });
+
+  it("keeps a reasoning-only assistant step", () => {
+    assert.deepEqual(toChatMlMessage({ role: "assistant", content: [{ type: "thinking", thinking: "hmm" }] }), {
+      role: "assistant",
+      thinking: [{ type: "thinking", content: "hmm" }],
+    });
+  });
+
+  it("drops an assistant message that carries nothing at all", () => {
+    assert.equal(toChatMlMessage({ role: "assistant", content: [] }), undefined);
+    assert.equal(
+      toChatMlMessage({ role: "assistant", content: [{ type: "thinking", thinking: "   " }] }),
+      undefined,
+    );
+  });
+
+  it("carries reasoning next to the text and the tool calls of the same step", () => {
+    assert.deepEqual(
+      toChatMlMessage({
+        role: "assistant",
+        content: [
+          { type: "thinking", thinking: "I should list the files.", thinkingSignature: "sig-abc" },
+          { type: "text", text: "Looking. " },
+          { type: "toolCall", id: "call_1", name: "bash", arguments: { command: "ls" } },
+        ],
+      }),
+      {
+        role: "assistant",
+        content: "Looking. ",
+        thinking: [{ type: "thinking", content: "I should list the files." }],
+        tool_calls: [
+          { id: "call_1", type: "function", function: { name: "bash", arguments: '{"command":"ls"}' } },
+        ],
+      },
+    );
+  });
+
+  it("maps a tool result onto the ChatML tool role and flags failures", () => {
+    assert.deepEqual(
+      toChatMlMessage({
+        role: "toolResult",
+        toolCallId: "call_1",
+        toolName: "bash",
+        content: [{ type: "text", text: "no such file" }],
+        isError: true,
+      }),
+      { role: "tool", tool_call_id: "call_1", name: "bash", content: "no such file", is_error: true },
+    );
+  });
+
+  it("drops an unknown role rather than guessing at its shape", () => {
+    assert.equal(toChatMlMessage({ role: "somethingNew", content: "x" }), undefined);
+    assert.equal(toChatMlMessage(undefined), undefined);
+    assert.equal(toChatMlMessage("not a message"), undefined);
+  });
+});
+
+describe("buildHistoryInput", () => {
+  const conversation = [
+    { role: "user", content: [{ type: "text", text: "explore this" }], timestamp: 1 },
+    {
+      role: "assistant",
+      content: [
+        { type: "text", text: "Looking. " },
+        { type: "toolCall", id: "call_1", name: "bash", arguments: { command: "ls" } },
+      ],
+      timestamp: 2,
+    },
+    {
+      role: "toolResult",
+      toolCallId: "call_1",
+      toolName: "bash",
+      content: [{ type: "text", text: "README.md" }],
+      isError: false,
+      timestamp: 3,
+    },
+  ];
+
+  it("converts a conversation in order", () => {
+    const history = buildHistoryInput(structuredClone(conversation) as never);
+    assert.deepEqual(history?.map((m) => m.role), ["user", "assistant", "tool"]);
+    assert.equal((history?.[0] as { content: string }).content, "explore this");
+  });
+
+  it("never mutates the messages pi is about to send", () => {
+    const messages = structuredClone(conversation);
+    const before = JSON.stringify(messages);
+    buildHistoryInput(messages as never);
+    assert.equal(JSON.stringify(messages), before);
+  });
+
+  it("renders a compaction summary as the user message the model actually sees", () => {
+    const history = buildHistoryInput([
+      { role: "compactionSummary", summary: "Earlier work.", tokensBefore: 1234, timestamp: 1 },
+      { role: "user", content: [{ type: "text", text: "and now?" }], timestamp: 2 },
+    ] as never);
+    assert.equal(history?.length, 2);
+    const summary = history?.[0] as { role: string; content: string };
+    assert.equal(summary.role, "user");
+    assert.match(summary.content, /compacted into the following summary/);
+    assert.match(summary.content, /Earlier work\./);
+  });
+
+  it("leaves out bash output that is excluded from the request", () => {
+    const history = buildHistoryInput([
+      { role: "user", content: [{ type: "text", text: "hi" }], timestamp: 1 },
+      {
+        role: "bashExecution",
+        command: "ls",
+        output: "secret-local-output",
+        exitCode: 0,
+        cancelled: false,
+        truncated: false,
+        excludeFromContext: true,
+        timestamp: 2,
+      },
+    ] as never);
+    assert.equal(history?.length, 1, "a !! bash run is not in the request, so not in the history");
+    assert.ok(!JSON.stringify(history).includes("secret-local-output"));
+  });
+
+  it("includes bash output that is part of the request", () => {
+    const history = buildHistoryInput([
+      {
+        role: "bashExecution",
+        command: "ls",
+        output: "README.md",
+        exitCode: 0,
+        cancelled: false,
+        truncated: false,
+        timestamp: 1,
+      },
+    ] as never);
+    assert.equal(history?.length, 1);
+    assert.equal(history?.[0]?.role, "user");
+  });
+
+  it("returns undefined instead of throwing on an unusable list, so the caller keeps its fallback", () => {
+    assert.equal(buildHistoryInput([] as never), undefined);
+    assert.equal(buildHistoryInput(undefined as never), undefined);
+    assert.equal(buildHistoryInput([{ role: "unknown" }] as never), undefined);
+  });
+
+  it("does not add a length cap of its own to a history message", () => {
+    const history = buildHistoryInput([
+      { role: "user", content: [{ type: "text", text: "y".repeat(120_000) }], timestamp: 1 },
+      { role: "user", content: [{ type: "text", text: "short" }], timestamp: 2 },
+    ] as never) as ChatMlMessage[];
+    assert.equal((history[0] as { content: string }).content.length, 120_000);
+    assert.equal((history[1] as { content: string }).content, "short");
+  });
+});
+
+describe("extractThinking", () => {
+  it("keeps reasoning blocks in transcript order", () => {
+    assert.deepEqual(
+      extractThinking([
+        { type: "thinking", thinking: "first thought" },
+        { type: "text", text: "in between" },
+        { type: "thinking", thinking: "second thought" },
+      ]),
+      [
+        { type: "thinking", content: "first thought" },
+        { type: "thinking", content: "second thought" },
+      ],
+    );
+  });
+
+  it("never traces the signature attestation blob", () => {
+    const parts = extractThinking([
+      { type: "thinking", thinking: "reasoning", thinkingSignature: "ErUBCkYIBRgCKkBd0pd" },
+    ]);
+    assert.deepEqual(parts, [{ type: "thinking", content: "reasoning" }]);
+    assert.ok(!JSON.stringify(parts).includes("ErUBCkYIBRgCKkBd0pd"));
+  });
+
+  it("marks a redacted block and carries no withheld payload", () => {
+    assert.deepEqual(
+      extractThinking([
+        {
+          type: "thinking",
+          thinking: "[Reasoning redacted]",
+          thinkingSignature: "opaque-encrypted-payload",
+          redacted: true,
+        },
+      ]),
+      [{ type: "thinking", content: "[Reasoning redacted]", redacted: true }],
+    );
+  });
+
+  it("skips empty blocks, so a non-reasoning model traces as before", () => {
+    assert.deepEqual(extractThinking([{ type: "thinking", thinking: "" }]), []);
+    assert.deepEqual(extractThinking([{ type: "thinking", thinking: "\n  \t" }]), []);
+    assert.deepEqual(extractThinking([{ type: "text", text: "no reasoning here" }]), []);
+  });
+
+  it("survives malformed parts and non-arrays", () => {
+    assert.deepEqual(extractThinking(undefined), []);
+    assert.deepEqual(extractThinking("a string"), []);
+    assert.deepEqual(extractThinking([null, 42, { type: "thinking" }, { type: "thinking", thinking: 7 }]), []);
+  });
+
+  it("keeps a long reasoning block whole", () => {
+    const parts = extractThinking([{ type: "thinking", thinking: "z".repeat(120_000) }]);
+    assert.equal(parts[0]!.content.length, 120_000);
+  });
+});

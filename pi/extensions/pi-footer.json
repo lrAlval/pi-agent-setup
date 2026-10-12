@@ -33,7 +33,7 @@
       {
         "id": "context-length-muyyno90-5chran",
         "type": "context-length",
-        "enabled": false,
+        "enabled": true,
         "options": {
           "raw": false,
           "hideWhenZero": false,

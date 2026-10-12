@@ -1,7 +1,7 @@
 ---
 name: advisor
 description: Fast second-opinion reviewer called at checkpoints (plan finalized, pre-commit). Reads the plan or diff and returns blockers, concerns, and nits without editing. Invoked by the orchestrator at those checkpoints and skipped silently when the model is unavailable.
-model: opencode-go/space-bunny-free
+model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
 tools:
   - read
