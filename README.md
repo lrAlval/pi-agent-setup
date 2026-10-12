@@ -97,6 +97,16 @@ The second run must be all-SKIP (`already installed ... nothing to do`).
 Config lives in `local-bash.json` (`reviewScratch`, `sandboxAllowFallback`, `sandbox.allowNetwork`, all default off).
 Unit tests: `bun test --preload pi/extensions/local-bash/typebox-stub.ts pi/extensions/local-bash/index.test.ts`.
 
+## Regular syncs from live
+
+`sync-from-live.sh` vendors the vetted delta from live `~/.pi/agent` back into `pi/` + `skills/`, excluding vanilla-pi stock.
+Baseline is the stock file list from the `tool:pi` tarball pin in `manifest.lock` (shasum-verified); fallback is the local npm `pi-coding-agent` install, else warn and continue.
+Modes: default dry-run (no writes); `--check` explicit dry-run without prompts; `--apply` writes + regenerates `manifest.lock` + lints `install.sh`; `--yes` non-interactive, unknowns append to mktemp pending file (`$SYNC_PENDING_FILE` or `/tmp/sync-pending.XXXXXX`, replaces old `sync-pending.conf` flow); `--json` machine output; `--strict` abort on secret; `--verify` checksum `manifest.lock`.
+Classes: `runtime` skip (sessions/db/locks/logs/cache), `secret` skip (auth/trust/keys/tokens), `stock` skip (in baseline), `npm-package` baseline source, `conf-rule` (`SKIP_ALWAYS`/`VENDOR_ALWAYS` hit), `unknown` prompt/pending.
+`sync-classify.conf` persists decisions: `RUNTIME_PATTERNS`, `SECRET_PATTERNS`, `SKIP_ALWAYS`, `VENDOR_ALWAYS`, `SKILL_SOURCES`, `TRANSFORMS`, `MEMORY_MODE`.
+Policy: live wins except repo-newer guard skips when repo copy is newer; `memory/` never vendored; secrets never vendored; deletions report-only (`REVIEW-DELETE`, never deletes).
+Cadence: run after live hotfixes drift from repo; land via PR only, never direct to `main`.
+
 ## Manual steps after install
 
 1. Provider auth: run `pi` and authenticate. Credentials stay on your machine, never in this repo.
