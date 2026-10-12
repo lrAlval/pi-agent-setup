@@ -1,0 +1,7 @@
+{
+  "reviewScratch": true,
+  "sandboxAllowFallback": false,
+  "sandbox": { "allowNetwork": true },
+  "timeoutMs": 60000,
+  "maxOutputBytes": 51200
+}

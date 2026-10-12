@@ -21,6 +21,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `pi-rtk-optimizer` | Tool-output compaction + savings tracking | Raw tool output floods context; rewrites and truncates it, tracks savings |
 | `@gotgenes/pi-permission-system` | Permission gate for destructive/secret paths | One wrong `rm -rf` or secret read ruins a session; risky patterns ask or deny |
 | `rules-enforcer` | Gate/routing enforcement (local, this repo) | Rules-as-requests are unenforceable; nudges delegation and UI gates once, refuses to settle without gates |
+| `local-bash` | Denylist shell + bwrap sandbox lane (local, this repo) | Plan-mode blocks all mutation including scratch self-tests; command-position matching kills false positives, `reviewScratch` allows /tmp writes, `sandbox:true` runs installs/self-tests contained |
 | `pi-plan-mode` + `patches/fix-plan-mode.mjs` | Truly read-only plan mode | Stock plan mode leaks write paths; the patch closes them (idempotent, re-run after package updates) |
 | `pi-hermes-memory` + `pi-observational-memory` | Persistent memory across sessions | Every session starts from zero; recall budgets replace re-discovery |
 | `pi-blackhole` | Mid-run context folding | Long sessions exceed context; folds finished work away |
@@ -81,10 +82,19 @@ The contract, in user terms:
 | `pi-hermes-memory/sessions.db*`, `projects-memory/` DB state | Binary state; text memory ships under `memory/` |
 | `~/.agents/ux-ui-agent-skills/` | Public clone (`plugin87/ux-ui-agent-skills`); the installer clones it |
 
+## Agent self-tests (sandbox lane)
+
+Installer changes verify in a scratch HOME under `bwrap`, never the live one.
+The recipe: `T=$(mktemp -d)` plus `PI_SETUP_REPO_DIR=<repo> PI_SETUP_SKIP_PI_INSTALL=1 HOME=$T bash install.sh` with `sandbox:true`.
+The second run must be all-SKIP (`already installed ... nothing to do`).
+Config lives in `local-bash.json` (`reviewScratch`, `sandboxAllowFallback`, `sandbox.allowNetwork`, all default off).
+Unit tests: `bun test --preload pi/extensions/local-bash/typebox-stub.ts pi/extensions/local-bash/index.test.ts`.
+
 ## Manual steps after install
 
 1. Provider auth: run `pi` and authenticate. Credentials stay on your machine, never in this repo.
 2. After any `pi-plan-mode` package update, re-run the patch: `node ~/.pi/agent/patches/fix-plan-mode.mjs`.
+3. After any pi package update, re-run the codemode-content guard and its verifier: `node ~/.pi/agent/patches/fix-codemode-content.mjs && node ~/.pi/agent/patches/verify-codemode-content.mjs`.
 3. Do not commit secrets into `memory/` later; it is shared content, not a vault.
 
 ## Layout
