@@ -1,0 +1,15 @@
+{
+  "extraBlocked": [],
+  "allowedPrefixes": [
+    "node -e ",
+    "node --input-type=module -e ",
+    "node - <<",
+    "python3 -c ",
+    "python3 - <<",
+    "python -c ",
+    "python - <<",
+    "bash <<"
+  ],
+  "timeoutMs": 60000,
+  "maxOutputBytes": 51200
+}

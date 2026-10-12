@@ -8,7 +8,7 @@ Interview the user relentlessly until you reach a shared understanding. Map this
 
 Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
 
-Format a round like so:
+Render each round through the host's native question tool when one exists (pi: `ask_user_question`, batching up to 6 questions per call; in plan mode `plan_mode_question`, 1-3 per call; opencode: `question` tool), with numbered question mapping and your recommended answer as the first option. Plain-text numbered rounds only when no question tool exists, formatted like so:
 
 ```
 ❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>

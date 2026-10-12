@@ -82,14 +82,18 @@ When the feature is done:
 
 - If the worktree is dirty, first commit the remaining work on the feature branch, then return. Never use `--force` without the user's explicit approval.
 - Returning releases the lease only. The orchestrator never merges the feature branch into the repo's main line - that is always the user's call.
+- The PR-ending contract (commit -> push -> `gh pr create --fill` -> return -> report URL) is defined in AGENTS.md; lease/return/seeding mechanics stay here.
 
 ## Asking
 
-Always, no exceptions use the `ask_user_question` tool, use it for every
-question instead of asking in plain text. Put your recommended answer in as one
-of the options, and let the tool's own header/question/options display handle
-formatting, don't add your own markdown or emoji on top of it.
-If no `ask_user_question` tool is available, ask in plain text, one question at
+Prefer the host's native question tool over plain text: on pi use
+`ask_user_question` (up to 6 questions per call, 2-4 options each,
+header <=16 chars, recommended option first), in plan mode
+`plan_mode_question` (1-3 per call); on opencode use its `question` tool
+with the same batching. Put your recommended answer first as one of the
+options, and let the tool's own display handle formatting - no custom
+markdown or emoji on top of it.
+If no question tool is available, ask in plain text, one question at
 a time, in whatever style the host already uses. Don't invent a custom template.
 
 ## Library and API docs
@@ -104,6 +108,13 @@ dotnet skills by name -> implement the smallest change -> note conflicts.
 
 - Routing: C#/quality -> `modern-csharp-coding-standards`, `csharp-concurrency-patterns`, `api-design`, `type-design-performance`, `r3-reactive-extensions`; Web/Aspire -> `aspire-service-defaults`, `aspire-integration-testing`, `transactional-emails`; Data -> `efcore-patterns`, `database-performance`; DI/config -> `dependency-injection-patterns`, `microsoft-extensions-configuration`; Testing -> `testcontainers-integration-tests`, `playwright-blazor-testing`, `snapshot-testing`.
 - Quality gates: `dotnet-slopwatch` after substantial new/refactored/LLM-authored code; `crap-analysis` after tests change in complex code.
+- Stack opinions: also consult the `dotnet` section of global OPINIONS.md plus project OPINIONS.md deviations (project wins).
+
+## Lanes
+
+After a plan exists and work partitions cleanly: at most 3 lanes, one-file-one-lane (each file in exactly one lane, no overlap).
+Each lane is a background subagent (`run_in_background: true`) working only in the shared treehouse worktree; lanes self-verify their file set and report back.
+After all lanes report, the orchestrator runs the full test suite once in the shared worktree; cross-lane dependencies are resolved explicitly, never merged blindly.
 
 ## Token efficiency tools
 
@@ -116,5 +127,10 @@ commands over ~30s or that stream output instead of polling bash.
 This stack does not ship pi-lens or billion-context. For symbol and call-path
 exploration use `codegraph_explore`; for structural search use `ast_grep`; for
 type and diagnostic checks run `tsc --noEmit` (or the repo's own lint/type
-script) instead of an LSP tool. There is no in-session context compressor -
-keep tool output compact yourself.
+script) instead of an LSP tool.
+
+rtk rewrite basics: pipe oversized tool output through `rtk` to rewrite it into compact form before it enters context; use it on repetitive logs, listings, and diffs, never on exact-match evidence (hashes, IDs, error strings).
+`ast-grep`/`fd` guidance: reach for `ast_grep` when a text search would need manual filtering (symbol refs, call sites); reach for `fd` when selecting files by name pattern across a tree instead of reading directories.
+Named `bg_run` convention: every background task gets a short human-readable name (2-6 words); rely on the completion notification plus `bg_logs` instead of polling.
+Read-only delegates (survey, plan-mode, research) carry a step cap (`maxTurns`, mirroring a ~40-step scout budget); implementation and verification lanes run uncapped on the default route.
+Mechanical request-level pruning (dedup + error purge) is handled automatically by pi-dcp; keep tool output compact yourself and do not manually fight the pruner.

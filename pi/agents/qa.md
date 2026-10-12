@@ -1,7 +1,7 @@
 ---
 name: qa
 description: SDET gate after build. Reads the change intent (plan, issue, or stated goal), derives an E2E-first scenario matrix, runs the verification gates and those scenarios, and reviews the diff for dead code and autofixable issues. Reports scenario-to-result evidence and flags gaps; reports failures rather than papering over them. Use after build on a nontrivial change, before safety-net and release.
-model: opencode-go/deepseek-v4.1-flash
+model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
 tools:
   - read

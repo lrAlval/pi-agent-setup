@@ -3,7 +3,6 @@
     "npm:@narumitw/pi-plan-mode",
     "npm:pi-rtk-optimizer",
     "npm:pi-subagents-lite",
-    "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:@dietrichgebert/ponytail",
     "npm:pi-ast-grep",
@@ -22,7 +21,11 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:@henryqw/pi-undo",
     "npm:pi-footer",
-    "npm:@langfuse/pi-observability-plugin"
+    "packages/pi-observability-plugin",
+    "packages/pi-eta",
+    "npm:@davecodes/pi-dcp",
+    "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
+    "npm:pi-codemode-toggle"
   ],
   "skills": [
     "~/.agents/skills/xias-data-dashboard",
@@ -32,7 +35,7 @@
   "hideThinkingBlock": true,
   "perModeModelSelection": true,
   "modeModels": {
-    "plan": "opencode-go/glm-5.3-flash:high",
+    "plan": "opencode-go/glm-5.3-flash:medium",
     "build": "opencode-go/deepseek-v4.1-flash:medium"
   },
   "modelThinkingLevels": {
@@ -51,8 +54,16 @@
     "-builtin:mcp"
   ],
   "defaultTools": [
+    "read",
+    "bash",
+    "edit",
+    "write",
     "+grep",
     "+find",
-    "+ls"
-  ]
+    "+ls",
+    "+codemode"
+  ],
+  "codemode": {
+    "mode": "only"
+  }
 }

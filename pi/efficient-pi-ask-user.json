@@ -1,0 +1,12 @@
+{
+	"maxQuestions": 6,
+	"minOptions": 2,
+	"maxOptions": 4,
+	"maxHeaderLength": 16,
+	"maxLabelLength": 60,
+	"allowMultiSelect": true,
+	"allowPreview": true,
+	"compactSchema": true,
+	"collapseKey": "ctrl+]",
+	"guidance": {}
+}
