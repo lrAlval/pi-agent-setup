@@ -51,6 +51,7 @@ import {
   reconcileModeContract,
 } from "./mode-contract.ts";
 import { createPlanActionController, type FreshImplementationTiming } from "./plan-action-controller.ts";
+import { persistPlanArtifact, planArtifactPath } from "./plan-artifact.ts";
 import { createPlanExportController } from "./plan-export-controller.ts";
 import {
   clearPlanModeUi,
@@ -1058,6 +1059,19 @@ export default function planMode(pi: ExtensionAPI, dependencies: PlanModeDepende
     };
     persistState();
     updateUi(ctx);
+    savePlanArtifact(ctx, normalized.plan);
+  }
+
+  // Persist every accepted plan to its session artifact so a refinement round and
+  // the implementation handoff share one durable file (see plan-artifact.ts).
+  function savePlanArtifact(ctx: ExtensionContext, plan: string) {
+    const sessionManager: Partial<ExtensionContext["sessionManager"]> = ctx.sessionManager;
+    const sessionId = typeof sessionManager.getSessionId === "function" ? sessionManager.getSessionId() : undefined;
+    if (!sessionId) return;
+    void persistPlanArtifact(sessionId, plan).catch((error: unknown) => {
+      const detail = error instanceof Error ? error.message : String(error);
+      ctx.ui.notify(`Unable to save the plan to ${planArtifactPath(sessionId)}: ${detail}`, "warning");
+    });
   }
 
   function completedPlanIsCurrent(intent: ReadyPresentationIntent) {

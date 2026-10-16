@@ -182,7 +182,9 @@ The first available preset is also the default source when no `defaultImplementa
 
 `autoImplement` accepts `off` (default) or `fresh`, and is JSON-only—there is no Settings menu entry for it yet.
 `off` keeps the upstream ready-plan menu.
-`fresh` skips that menu entirely when a plan is ready, and immediately starts the linked fresh implementation session with the resolved runtime, using the same deferred `after-settled` timing as **Start fresh and implement**.
+`fresh` keeps that menu as the approval surface but promotes **Start fresh and implement** to the first entry, so a ready plan asks before it starts anything.
+The ready menu also offers **Keep refining the plan**, which stays in Plan mode, reports where the plan was saved, and lets you send feedback so the plan can improve before implementation.
+Every accepted plan is written to `<agentDir>/plans/<session-id>.md` (normally `~/.pi/agent/plans/`), so a refinement round and the implementation handoff address the same durable file.
 In a session without UI (`pi -p`, RPC without a picker) the automatic handoff does not run: the plan stays ready, a notification reports the ready plan, and `/plan` can implement it later.
 A failed fresh-session handoff restores the ready plan so `/plan` can retry it.
 
