@@ -25,7 +25,8 @@
     "packages/pi-eta",
     "npm:@davecodes/pi-dcp",
     "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
-    "npm:pi-codemode-toggle"
+    "npm:pi-codemode-toggle",
+    "git:github.com/elpapi42/pi-fork"
   ],
   "skills": [
     "~/.agents/skills/xias-data-dashboard",
@@ -65,5 +66,13 @@
   ],
   "codemode": {
     "mode": "only"
+  },
+  "pi-fork": {
+    "defaultEffort": "balanced",
+    "effortProfiles": {
+      "fast": { "provider": "opencode-go", "id": "deepseek-v4.1-flash", "thinking": "minimal" },
+      "balanced": { "provider": "opencode-go", "id": "muse-spark-1.3-contributor", "thinking": "low" },
+      "deep": { "provider": "opencode-go", "id": "muse-spark-1.3-contributor", "thinking": "medium" }
+    }
   }
 }
