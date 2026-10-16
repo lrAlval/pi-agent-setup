@@ -116,7 +116,7 @@ function Install-Tool {
   $pin = Manifest-Val $Key
   $is64 = [Environment]::Is64BitOperatingSystem
   $arch = if ([IntPtr]::Size -eq 8) { "amd64" } else { "386" }
-  if ($pin -match "windows-$arch:(\S+)") { $asset = $Matches[1] } else { Fail "no $Name asset pinned for windows-$arch" }
+  if ($pin -match "windows-${arch}:(\S+)") { $asset = $Matches[1] } else { Fail "no $Name asset pinned for windows-$arch" }
   $sha = ($asset -split "sha256:")[1].Split(":")[0]
   $url = ($asset -split "\|")[-1]
   $tmpd = Join-Path ([IO.Path]::GetTempPath()) ("pi-tool-" + [Guid]::NewGuid().ToString("N"))
