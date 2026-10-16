@@ -1,6 +1,6 @@
 {
   "packages": [
-    "npm:@narumitw/pi-plan-mode",
+    "packages/better-plan-mode",
     "npm:pi-rtk-optimizer",
     "npm:pi-subagents-lite",
     "npm:@juicesharp/rpiv-todo",

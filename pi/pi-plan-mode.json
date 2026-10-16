@@ -1,9 +1,13 @@
 {
   "defaultImplementationModel": {
     "provider": "opencode-go",
-    "modelId": "glm-5.3-flash"
+    "modelId": "muse-spark-1.3-contributor"
   },
   "defaultPlanTools": [
+    "Agent",
+    "AgentStatus",
+    "MessageAgent",
+    "StopAgent",
     "ask_user_question",
     "ast_grep",
     "bash",
@@ -23,7 +27,6 @@
     "local_bash",
     "ls",
     "mcp",
-    "mcp__codegraph",
     "memory_add",
     "memory_replace",
     "memory_search",
@@ -33,11 +36,17 @@
     "skill_manage",
     "todo",
     "web_fetch",
+    "wiki_ensure_page",
+    "wiki_ingest",
+    "wiki_lint",
     "wiki_observe",
     "wiki_recall",
     "wiki_retro",
     "wiki_search",
-    "wiki_status"
+    "wiki_status",
+    "edit",
+    "write",
+    "bg_run"
   ],
   "implementationPlanRetention": "clear-on-start",
   "bashMode": "yolo",
@@ -187,5 +196,22 @@
       "-d "
     ]
   },
-  "thinkingLevel": "inherit"
+  "thinkingLevel": "inherit",
+  "defaultImplementationThinkingLevel": "medium",
+  "autoImplement": "fresh",
+  "autostart": true,
+  "implementationModelPresets": [
+    {
+      "provider": "opencode-go",
+      "modelId": "muse-spark-1.3-contributor",
+      "thinkingLevel": "medium",
+      "label": "muse"
+    },
+    {
+      "provider": "opencode-go",
+      "modelId": "deepseek-v4.1-flash",
+      "thinkingLevel": "medium",
+      "label": "deepseek fallback"
+    }
+  ]
 }

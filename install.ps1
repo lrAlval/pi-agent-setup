@@ -243,20 +243,10 @@ if (Test-Path $linksFile) {
   Log-Warn "xias-symlinks.txt missing in sources; skipping symlink step"
 }
 
-# --- plan-mode patch chain (best effort) ----------------------------------------
-# Applies every fix-plan-mode*.mjs in order (v3 then v4); see patches/patch-registry.json.
-$patchFiles = Get-ChildItem -Path (Join-Path $PiDir "patches") -Filter "fix-plan-mode*.mjs" -ErrorAction SilentlyContinue
-if (Get-Command node -ErrorAction SilentlyContinue) {
-  $patched = 0
-  foreach ($p in $patchFiles) {
-    & node $p.FullName 2>$null
-    if ($LASTEXITCODE -eq 0) { $patched++ }
-    else { Log-Warn "plan-mode patch did not apply: $($p.Name) (re-run after first pi boot: node $($p.FullName))" }
-  }
-  if ($patched -gt 0) { Log-Ok "plan-mode patch: $patched applied or already patched" }
-} elseif ($patchFiles) {
-  Log-Warn "node missing; run manually after install: node <agentdir>\patches\fix-plan-mode*.mjs"
-}
+# --- better-plan-mode -----------------------------------------------------------
+# The plan-mode read-only policy, bashMode, and auto-implementation handoff ship
+# inside the vendored pi/packages/better-plan-mode source; the historical
+# fix-plan-mode*.mjs patch chain was retired because the fork carries it natively.
 
 # --- vendored packages (pi/packages/*): install deps when missing -----------------
 if (Test-Path (Join-Path $PiDir "packages")) {

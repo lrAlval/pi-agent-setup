@@ -21,7 +21,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `pi-rtk-optimizer` | Tool-output compaction + savings tracking | Raw tool output floods context; rewrites and truncates it, tracks savings |
 | `@gotgenes/pi-permission-system` | Permission gate for destructive/secret paths | One wrong `rm -rf` or secret read ruins a session; risky patterns ask or deny |
 | `local-bash` | Denylist shell + bwrap sandbox lane (local, this repo) | Plan-mode blocks all mutation including scratch self-tests; command-position matching kills false positives, `reviewScratch` allows /tmp writes, `sandbox:true` runs installs/self-tests contained |
-| `pi-plan-mode` + `patches/fix-plan-mode{,-v4}.mjs` | Truly read-only plan mode | Stock plan mode leaks write paths; the patch chain (v3 then v4, see `patches/patch-registry.json`) closes them (idempotent, re-run after package updates) |
+| `better-plan-mode` (vendored in `pi/packages/`, fork of `@narumitw/pi-plan-mode`) | Truly read-only plan mode | Stock plan mode leaks write paths and has no lifecycle handoff; the fork carries the reviewed read-only policy, `bashMode: "yolo"`, and the auto fresh-implementation handoff natively, so no install-time patch is needed |
 | `pi-hermes-memory` + `pi-observational-memory` | Persistent memory across sessions | Every session starts from zero; recall budgets replace re-discovery |
 | `pi-subagents-lite` + 13 agents in `pi/agents/` | Isolated subagent delegation | Single-agent sessions waste context on exploration; delegates run isolated |
 | `ponytail` + footer widget | Cost/savings footer | Spend is invisible; the footer shows it live |
@@ -43,7 +43,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `git:pi-community-themes` | Theme pack | Stock theme only; `atom-one-dark` and friends |
 | `pi-eta` (vendored in `pi/packages/`) | Live ETA from your todo list | Estimates drift silently; progress widget plus countdown plus calibration |
 | `local-bash` (local) | Guarded shell presets | Ad-hoc shell flags vary; pinned prefixes, timeouts, output caps |
-| `local-patch-guard` (local) | Patch-chain watchdog | Patched packages update silently; guards the plan-mode patch state |
+| `local-patch-guard` (local) | Patch-chain watchdog | Patched packages update silently; re-applies the remaining registry entries at session start |
 | `spine-enforcer` (local) | Spine repo discipline | Goal/spec/state files rot; enforces the spine contract |
 | `token-trail` (local) | Token spend trail | Spend is invisible per turn; records the trail |
 | `pi-codemode-toggle` | Codemode switch | Codemode always-on constrains; toggle per need |
@@ -110,7 +110,7 @@ Cadence: run after live hotfixes drift from repo; land via PR only, never direct
 ## Manual steps after install
 
 1. Provider auth: run `pi` and authenticate. Credentials stay on your machine, never in this repo.
-2. After any `pi-plan-mode` package update, re-run the patch chain: `node ~/.pi/agent/patches/fix-plan-mode.mjs && node ~/.pi/agent/patches/fix-plan-mode-v4.mjs`.
+2. Plan mode needs no patch step: `pi/packages/better-plan-mode` is vendored source and carries the reviewed read-only policy, `bashMode`, and the auto-implementation handoff natively. Re-vendor it from the fork checkout after fork changes (copy `src/`, `docs/`, `README.md`, and `LICENSE`, then flip `.js` import specifiers to `.ts`; the vendored directory is source-only, so fork tests stay in the fork checkout).
 3. After any pi package update, re-run the codemode-content guard and its verifier: `node ~/.pi/agent/patches/fix-codemode-content.mjs && node ~/.pi/agent/patches/verify-codemode-content.mjs`.
 4. Do not commit secrets into `memory/` later; it is shared content, not a vault.
 

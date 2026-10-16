@@ -326,19 +326,11 @@ if [ -d "$PI_DIR/packages" ]; then
   done
 fi
 
-# --- plan-mode patch chain (best effort) ----------------------------------------
-# Applies every fix-plan-mode*.mjs in order (v3 then v4); see patches/patch-registry.json.
-if command -v node >/dev/null 2>&1; then
-  patched=0
-  for PATCH in "$PI_DIR"/patches/fix-plan-mode*.mjs; do
-    [ -f "$PATCH" ] || continue
-    if node "$PATCH" >/dev/null 2>&1; then patched=$((patched+1));
-    else warn "plan-mode patch did not apply: $PATCH (package likely not installed yet; re-run after first pi boot: node $PATCH)"; fi
-  done
-  [ "$patched" -gt 0 ] && ok "plan-mode patch: $patched applied or already patched"
-else
-  warn "node missing; run manually after install: node $PI_DIR/patches/fix-plan-mode*.mjs"
-fi
+# --- better-plan-mode -----------------------------------------------------------
+# The plan-mode read-only policy, bashMode, and auto-implementation handoff ship
+# inside the vendored pi/packages/better-plan-mode source; no install-time patch
+# is needed. The historical fix-plan-mode*.mjs patch chain was retired because
+# the fork carries those changes natively.
 
 # --- auth reminder ---------------------------------------------------------------
 if [ ! -f "$PI_DIR/auth.json" ]; then
