@@ -108,6 +108,12 @@ Classes: `runtime` skip (sessions/db/locks/logs/cache), `secret` skip (auth/trus
 Policy: live wins except repo-newer guard skips when repo copy is newer; `memory/` never vendored; secrets never vendored; deletions report-only (`REVIEW-DELETE`, never deletes).
 Cadence: run after live hotfixes drift from repo; land via PR only, never direct to `main`.
 
+## CI (verify workflow)
+
+`.github/workflows/verify.yml` runs on every PR to `main` and on pushes to `main`.
+Checks: `bash -n` on `install.sh` and `sync-from-live.sh`, sourcing `sync-classify.conf`, `install.ps1` parse (skipped when `pwsh` is absent), every tracked `pi/**/*.json` parses, `manifest.lock` matches a fresh checksum walk of `pi/` + `memory/` + `skills/`, and vendored packages stay source-only (no `node_modules/` or `dist/`, `pi.extensions` points at `./src/index.ts`, no `.js` import specifiers).
+Run the same checks locally before pushing: regenerate with `head -n 6 manifest.lock > /tmp/m && (find pi memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> /tmp/m && mv /tmp/m manifest.lock`.
+
 ## Manual steps after install
 
 1. Provider auth: run `pi` and authenticate. Credentials stay on your machine, never in this repo.

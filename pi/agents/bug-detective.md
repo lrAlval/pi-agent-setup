@@ -3,6 +3,7 @@ name: bug-detective
 description: Investigates a reported bug to find root cause before any fix is proposed - reproduces first, distinguishes symptom from cause, checks whether it's an isolated defect or a systemic consequence of the design. Use for bugfixing, especially in undocumented or vibe-coded apps with weak or no tests. Investigates only, does not patch.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

@@ -3,6 +3,7 @@ name: perf-doctor
 description: Application performance specialist, framework- and language-agnostic. Diagnoses slowness and regressions from code and profiling data, audits existing skills for the solution stack and auto-uses them (or recommends a popular one when none exists), produces a prioritized fix plan with delegation-ready implementation instructions, and recommends open-source profilers and robust platform/APM options. Use for any performance report, regression, or "why is this slow", before any fix attempt.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

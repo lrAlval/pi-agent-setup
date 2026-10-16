@@ -3,6 +3,7 @@ name: review
 description: Read-only code reviewer for day-to-day diffs. Defaults to the uncommitted working-tree diff or a given git range; reviews named files when asked. Returns findings ranked by severity, not a restatement of the change. Use before committing routine work. For adversarial plan review use skeptic; for bulk 100+ file changes this agent falls back to mechanical-vs-authored risk-ranking.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

@@ -1,0 +1,75 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell syntax
+        run: |
+          bash -n install.sh
+          bash -n sync-from-live.sh
+          bash -c '. ./sync-classify.conf && echo "sync-classify.conf OK"'
+
+      - name: PowerShell syntax
+        run: |
+          if command -v pwsh >/dev/null 2>&1; then
+            pwsh -NoProfile -Command '
+              $errs = $null
+              [void][System.Management.Automation.Language.Parser]::ParseFile("install.ps1", [ref]$null, [ref]$errs)
+              if ($errs) { $errs | ForEach-Object { Write-Error $_ }; exit 1 }
+              "install.ps1 parse OK"
+            '
+          else
+            echo "pwsh not installed, skipping install.ps1 parse"
+          fi
+
+      - name: Config parses
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          files = subprocess.run(
+              ["git", "ls-files", "pi/*.json", "pi/**/*.json"],
+              capture_output=True, text=True, check=True,
+          ).stdout.split()
+          for path in files:
+              json.load(open(path))
+          print(f"{len(files)} JSON files parse")
+          PY
+
+      - name: manifest.lock matches the tree
+        run: |
+          head -n 6 manifest.lock > /tmp/manifest.expected
+          (find pi memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> /tmp/manifest.expected
+          if ! diff -u manifest.lock /tmp/manifest.expected; then
+            echo "::error::manifest.lock is stale - regenerate it and commit the result"
+            exit 1
+          fi
+          echo "manifest.lock OK ($(( $(wc -l < manifest.lock) - 6 )) entries)"
+
+      - name: Vendored packages are source-only
+        run: |
+          fail=0
+          for pkg in pi/packages/*/; do
+            for junk in node_modules dist; do
+              if [ -e "${pkg}${junk}" ]; then
+                echo "::error::${pkg}${junk} is committed; vendored packages ship source only"
+                fail=1
+              fi
+            done
+            if ! grep -q '"\./src/index.ts"' "${pkg}package.json"; then
+              echo "::error::${pkg}package.json does not point pi.extensions at ./src/index.ts"
+              fail=1
+            fi
+            if grep -rqn 'from "\.\.\?/[^"]*\.js"' "${pkg}src" 2>/dev/null; then
+              echo "::error::${pkg}src has .js specifiers; pi resolves .ts specifiers for vendored packages"
+              fail=1
+            fi
+          done
+          exit $fail

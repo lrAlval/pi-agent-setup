@@ -3,6 +3,7 @@ name: blast-radius
 description: Maps what actually depends on a piece of code before it's changed - direct callers, indirect/config-driven dependents, cross-repo or cross-service contracts, and what would break silently vs loudly. Use before editing shared code, legacy modules, public APIs, or anything with unclear ownership. Read-only.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

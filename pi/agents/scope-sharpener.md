@@ -3,6 +3,7 @@ name: scope-sharpener
 description: Turns a vague feature or bug request into precise, testable scope before planning starts: acceptance criteria, explicit non-goals, edge cases, and open questions. Use when a request is underspecified, before invoking plan or build. Read-only, asks rather than assumes.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

@@ -3,6 +3,7 @@ name: surveyor
 description: Builds a structural and risk map of an unfamiliar or legacy repo before any work starts. Use when entering a new repo, picking up a legacy codebase, or resuming someone else's project after a gap. Read-only.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

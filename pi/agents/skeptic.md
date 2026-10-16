@@ -3,6 +3,7 @@ name: skeptic
 description: Adversarially reviews a plan or diff before implementation or merge - hunts for unstated assumptions, uncovered edge cases, and failure modes the plan doesn't address. Use after a plan exists (from the plan agent or a human), before build starts, or before merging a nontrivial change. Read-only, never softens findings to be agreeable.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

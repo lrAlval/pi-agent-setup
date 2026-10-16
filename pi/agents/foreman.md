@@ -3,6 +3,7 @@ name: foreman
 description: Handles infrastructure work across major cloud providers, IaC, CI/CD pipelines, sysadmin, and networking - both authoring changes (Terraform/IaC, CI pipelines, Dockerfiles, k8s manifests) and diagnosing infrastructure problems (connectivity, misconfiguration, capacity, infra-level security posture). Use for anything touching cloud resources, deployment pipelines, networking, or system administration, regardless of provider or IaC tool. Complements sentinel (application-code security) and blast-radius (code-level coupling) rather than duplicating them - different layer, same discipline.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep
