@@ -1,6 +1,29 @@
 {
   "versions": {
-    "registry": 1
+    "registry": 2
   },
-  "entries": []
+  "entries": [
+    {
+      "name": "omp-theme-plan-complete",
+      "package": "@nguyenquangthai/pi-omp-theme",
+      "pinnedVersion": "1.0.26",
+      "target": {
+        "file": "dist/extensions/pi-omp-theme.ts",
+        "anchors": [
+          "function renderFallbackResult",
+          "MAX_FALLBACK_PREVIEW_LINES"
+        ]
+      },
+      "steps": [
+        {
+          "script": "apply-omp-theme-plan-complete.mjs",
+          "marker": "isPlanCompleteFull"
+        }
+      ],
+      "verify": {
+        "script": "verify-omp-theme-plan-complete.mjs",
+        "passLine": "OMP PLAN-COMPLETE ASSERTIONS PASSED"
+      }
+    }
+  ]
 }
