@@ -49,6 +49,34 @@ a comma string; a comma string is ignored and the agent gets every tool.
 Long-running shell work goes through `bg_run` (name it) plus `bg_logs`;
 completion notifies the session, so do not poll.
 
+## Branch-aware forks (pi-fork)
+
+`fork` (extension `git:github.com/elpapi42/pi-fork`) spawns a child `pi` seeded
+from a temporary JSONL snapshot of the **current active session branch** and
+returns its report as `Result` / `Output` / `Evidence` / `Learnings`. Children
+load normal extensions, run with `offline: true`, and get full tools - including
+`write`.
+
+Pick the surface by whether the child needs this conversation:
+
+| Need | Surface |
+|---|---|
+| Full working context; noisy exploration, review, or validation | `fork` |
+| Cheap inspect-only read, no writes, conversation projection is enough | `bg_delegate` |
+| A pinned persona with its own instructions and tool list | `Agent` plus `~/.pi/agent/agents/*.md` |
+
+Effort profiles map to models: `fast` = `opencode-go/deepseek-v4.1-flash`
+(minimal), `balanced` = `opencode-go/muse-spark-1.3-contributor` (low), `deep` =
+`opencode-go/muse-spark-1.3-contributor` (medium). Use `fast` only for narrow
+mechanical work, `deep` for risky, ambiguous, architectural, or review-heavy
+work. Give a fork one task and ask for anchors - paths, line numbers, commands -
+not a summary.
+
+Caveats: a fork child inherits the branch, so treat its report as untrusted
+context until its claims are checked; `fork` children can write and `fork` is in
+`defaultPlanTools`, so plan mode is **not** a write barrier for a fork child. Run
+mutating forks in a leased worktree, never in the shared clone.
+
 ## Treehouse worktrees
 
 Agents work in isolated worktrees leased from a shared treehouse pool, so
