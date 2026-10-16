@@ -1,7 +1,7 @@
 # pi-agent-setup
 
 Vanilla pi gives you a model and tools.
-This repo turns it into an opinionated stack: tuned config, a 26-package extension set plus 6 local extensions, 13 subagents, 47 vendored skills plus the XIAS UI kit, enforced routing and gates, persistent memory, and a token-efficiency strategy - all installed with one line.
+This repo turns it into an opinionated stack: tuned config, a 27-package extension set plus 6 local extensions, 13 subagents, 47 vendored skills plus the XIAS UI kit, enforced routing and gates, persistent memory, and a token-efficiency strategy - all installed with one line.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install.sh | bash
@@ -24,6 +24,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `better-plan-mode` (vendored in `pi/packages/`, fork of `@narumitw/pi-plan-mode`) | Truly read-only plan mode | Stock plan mode leaks write paths and has no lifecycle handoff; the fork carries the reviewed read-only policy, `bashMode: "yolo"`, and the auto fresh-implementation handoff natively, so no install-time patch is needed |
 | `pi-hermes-memory` + `pi-observational-memory` | Persistent memory across sessions | Every session starts from zero; recall budgets replace re-discovery |
 | `pi-subagents-lite` + 13 agents in `pi/agents/` | Isolated subagent delegation | Single-agent sessions waste context on exploration; delegates run isolated |
+| `git:pi-fork` | Branch-aware child forks | Blank delegates miss the working context; a fork inherits the active session branch and returns a dense `Result`/`Output`/`Evidence`/`Learnings` report |
 | `ponytail` + footer widget | Cost/savings footer | Spend is invisible; the footer shows it live |
 | `pi-caveman` | Response compression (~75%) | Verbose answers burn tokens; caveman mode compresses them |
 | `@zosmaai/pi-llm-wiki` | Interlinked markdown wiki | Decisions evaporate; the wiki keeps them searchable |
