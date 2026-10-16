@@ -46,7 +46,8 @@
     "wiki_status",
     "edit",
     "write",
-    "bg_run"
+    "bg_run",
+    "fork"
   ],
   "implementationPlanRetention": "clear-on-start",
   "bashMode": "yolo",
