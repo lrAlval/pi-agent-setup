@@ -1,0 +1,1 @@
+{"blockedRoots": ["/", "$HOME", "/tmp", "/etc", "/usr"], "eligibleDepth": 2, "eligibleFiles": 20, "failOpen": true, "healthyIndex": ".codegraph/codegraph.db", "optOutEnv": "PI_NO_CODEGRAPH_GATE", "plainLock": ".codegraph/init.lock"}

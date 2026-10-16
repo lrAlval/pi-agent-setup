@@ -112,6 +112,13 @@ Cadence: run after live hotfixes drift from repo; land via PR only, never direct
 
 `.github/workflows/verify.yml` runs on every PR to `main` and on pushes to `main`.
 Checks: `bash -n` on `install.sh` and `sync-from-live.sh`, sourcing `sync-classify.conf`, `install.ps1` parse (skipped when `pwsh` is absent), every tracked `pi/**/*.json` parses, `manifest.lock` matches a fresh checksum walk of `pi/` + `memory/` + `skills/`, and vendored packages stay source-only (no `node_modules/` or `dist/`, `pi.extensions` points at `./src/index.ts`, no `.js` import specifiers).
+It also scans every tracked file under `pi/`, `memory/` and `skills/` for secret patterns and fails on a match, because this repository is public while `sync-from-live.sh` vendors live configuration automatically.
+
+### What syncs
+
+`extensions/*` is vendored wholesale, so any new local extension lands here on the next sync; `themes/*` and `subagents-lite.json` are vendored too.
+Runtime state stays live-only by policy (`RUNTIME_PATTERNS`): sessions, `npm/`, `git/`, `bin/`, `install/`, `logs/`, `extensions/*/logs/*`, `plans/`, `archive/`, `skill-audit/`, `projects-memory/`, `pi-hermes-memory/`, `models-store.json`, and the MCP caches.
+`SECRET_PATTERNS` (auth, trust, keys, tokens) are never read or copied.
 Run the same checks locally before pushing: regenerate with `head -n 6 manifest.lock > /tmp/m && (find pi memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> /tmp/m && mv /tmp/m manifest.lock`.
 
 ## Patches
