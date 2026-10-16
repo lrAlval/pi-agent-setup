@@ -242,6 +242,8 @@ sync_from_manifest() {
     rel="$(printf '%s' "$line" | awk '{print $2}')"
     case "$rel" in pi/*|memory/*|skills/*) ;; *) continue ;; esac
     [ "$rel" = "skills/xias-symlinks.txt" ] && continue
+    # Merge-managed below: the patch registry unions shipped and local entries.
+    [ "$rel" = "pi/patches/patch-registry.json" ] && continue
     dest="$(dest_for_rel "$rel")"
     [ -n "$dest" ] || continue
     if [ -f "$dest" ] && echo "$sha  $dest" | sha256sum -c - >/dev/null 2>&1; then
@@ -331,6 +333,43 @@ fi
 # inside the vendored pi/packages/better-plan-mode source; no install-time patch
 # is needed. The historical fix-plan-mode*.mjs patch chain was retired because
 # the fork carries those changes natively.
+
+# --- patch registry merge -------------------------------------------------------
+# pi/patches/patch-registry.json is merge-managed: the checksum sync skips it and
+# this step unions the shipped entries with any local-only entries by name (shipped
+# wins on conflict), so a machine-specific patch entry survives an install.
+REGISTRY="$PI_DIR/patches/patch-registry.json"
+REGISTRY_BASE="$SRC/pi/patches/patch-registry.json"
+if [ -f "$REGISTRY_BASE" ]; then
+  if [ -f "$REGISTRY" ] && command -v node >/dev/null 2>&1; then
+    merge_out="$(node -e '
+const fs = require("fs");
+const [basePath, localPath] = process.argv.slice(1);
+const base = JSON.parse(fs.readFileSync(basePath, "utf8"));
+const local = JSON.parse(fs.readFileSync(localPath, "utf8"));
+const names = new Set((base.entries || []).map((e) => e.name));
+const extras = (local.entries || []).filter((e) => !names.has(e.name));
+const merged = { ...base, versions: { ...(local.versions || {}), ...(base.versions || {}) }, entries: [...(base.entries || []), ...extras] };
+const next = JSON.stringify(merged, null, 2) + "\n";
+if (next === fs.readFileSync(localPath, "utf8")) {
+  console.log("NOCHANGE");
+} else {
+  fs.writeFileSync(localPath + ".tmp", next);
+  fs.renameSync(localPath + ".tmp", localPath);
+  console.log("extras:" + extras.map((e) => e.name).join(","));
+}
+' "$REGISTRY_BASE" "$REGISTRY" 2>&1)" || warn "patch registry merge failed: $merge_out"
+    case "$merge_out" in
+      NOCHANGE) skip "patch registry: shipped and local entries already merged" ;;
+      extras:*) ok "patch registry: kept local entries (${merge_out#extras:})" ;;
+      *) : ;;
+    esac
+  else
+    mkdir -p "$PI_DIR/patches"
+    cp "$REGISTRY_BASE" "$REGISTRY"
+    warn "patch registry: node missing, installed the shipped entries without merging local ones"
+  fi
+fi
 
 # --- auth reminder ---------------------------------------------------------------
 if [ ! -f "$PI_DIR/auth.json" ]; then

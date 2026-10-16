@@ -44,7 +44,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `git:pi-community-themes` | Theme pack | Stock theme only; `atom-one-dark` and friends |
 | `pi-eta` (vendored in `pi/packages/`) | Live ETA from your todo list | Estimates drift silently; progress widget plus countdown plus calibration |
 | `local-bash` (local) | Guarded shell presets | Ad-hoc shell flags vary; pinned prefixes, timeouts, output caps |
-| `local-patch-guard` (local) | Patch-chain watchdog | Patched packages update silently; re-applies the remaining registry entries at session start |
+| `local-patch-guard` (local) | Patch-chain watchdog | Patched packages update silently; re-applies the remaining registry entries at session start, and `install.sh` merges shipped and local registry entries instead of overwriting them |
 | `spine-enforcer` (local) | Spine repo discipline | Goal/spec/state files rot; enforces the spine contract |
 | `token-trail` (local) | Token spend trail | Spend is invisible per turn; records the trail |
 | `pi-codemode-toggle` | Codemode switch | Codemode always-on constrains; toggle per need |
@@ -114,12 +114,20 @@ Cadence: run after live hotfixes drift from repo; land via PR only, never direct
 Checks: `bash -n` on `install.sh` and `sync-from-live.sh`, sourcing `sync-classify.conf`, `install.ps1` parse (skipped when `pwsh` is absent), every tracked `pi/**/*.json` parses, `manifest.lock` matches a fresh checksum walk of `pi/` + `memory/` + `skills/`, and vendored packages stay source-only (no `node_modules/` or `dist/`, `pi.extensions` points at `./src/index.ts`, no `.js` import specifiers).
 Run the same checks locally before pushing: regenerate with `head -n 6 manifest.lock > /tmp/m && (find pi memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> /tmp/m && mv /tmp/m manifest.lock`.
 
+## Patches
+
+`pi/patches/patch-registry.json` lists the re-appliable patches the local-patch-guard extension runs at session start (it re-applies a step only when its marker is absent, so it is idempotent).
+
+- Shipped: `omp-theme-plan-complete` for `@nguyenquangthai/pi-omp-theme` - `apply-omp-theme-plan-complete.mjs` plus `verify-omp-theme-plan-complete.mjs` and `pi-omp-theme-plan-complete-result.patch`.
+- Live-only, deliberately not vendored: `pi-core-event-command-context` (`fix-pi-core-event-command-context.mjs`), which patches `@earendil-works/pi-coding-agent` core rather than an extension. An autostarted plan-mode session never runs `/plan`, so the auto fresh-implementation handoff needs it in interactive sessions; `sync-classify.conf` keeps it out of the repo.
+
+The registry is merge-managed: `install.sh` and `install.ps1` skip it during the checksum sync and then union the shipped entries with any local-only entries by name, so a machine-specific entry such as `pi-core-event-command-context` survives an install instead of being overwritten by the shipped file.
+
 ## Manual steps after install
 
 1. Provider auth: run `pi` and authenticate. Credentials stay on your machine, never in this repo.
 2. Plan mode needs no patch step: `pi/packages/better-plan-mode` is vendored source and carries the reviewed read-only policy, `bashMode`, and the auto-implementation handoff natively. Re-vendor it from the fork checkout after fork changes (copy `src/`, `docs/`, `README.md`, and `LICENSE`, then flip `.js` import specifiers to `.ts`; the vendored directory is source-only, so fork tests stay in the fork checkout).
 3. After any pi package update, re-run the codemode-content guard and its verifier: `node ~/.pi/agent/patches/fix-codemode-content.mjs && node ~/.pi/agent/patches/verify-codemode-content.mjs`.
-4. Do not commit secrets into `memory/` later; it is shared content, not a vault.
 
 ## Layout
 
