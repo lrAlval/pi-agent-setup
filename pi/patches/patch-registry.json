@@ -2,27 +2,5 @@
   "versions": {
     "registry": 1
   },
-  "entries": [
-    {
-      "name": "plan-mode",
-      "package": "@narumitw/pi-plan-mode",
-      "target": {
-        "dirScan": "dist/chunks",
-        "anchors": [
-          "matchesConfiguredSafeSubcommand",
-          "function findBlockedCommandSegment"
-        ]
-      },
-      "steps": [
-        {
-          "script": "fix-plan-mode.mjs",
-          "marker": "pi-agent-setup patch v3"
-        },
-        {
-          "script": "fix-plan-mode-v4.mjs",
-          "marker": "isSafeGitTagArgs"
-        }
-      ]
-    }
-  ]
+  "entries": []
 }
