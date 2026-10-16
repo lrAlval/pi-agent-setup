@@ -167,6 +167,10 @@ interface ReadyPlanMenuOptions extends MenuLifecycle {
   implementationDefaults?: ImplementationRuntimeSelection;
   implementationPresets?: readonly ImplementationModelPreset[];
   implementationOutcome(): string;
+  /** Promote the fresh implementation entry to the top of the ready screen. */
+  freshFirst?: boolean;
+  /** Keep the plan and stay in Plan mode so the user can send refinement feedback. */
+  refine(): void;
   getExportDestination: PlanExportDestinationProvider;
   implementHere(): void | Promise<void>;
   implementFresh(runtime: ImplementationRuntimeSelection, signal: AbortSignal): void | Promise<void>;
@@ -183,6 +187,7 @@ export async function showReadyPlanMenu(ctx: ExtensionContext, options: ReadyPla
     | "select-model"
     | "select-thinking"
     | "start-fresh"
+    | "refine"
     | "export"
     | "save"
     | "stay"
@@ -194,6 +199,18 @@ export async function showReadyPlanMenu(ctx: ExtensionContext, options: ReadyPla
     options.implementFresh,
     options.implementationPresets ?? [],
   );
+  const freshReadyItem = {
+    id: "implement-fresh",
+    label: "Start fresh and implement",
+    description: "Configure one-shot model and thinking choices first.",
+    to: "fresh",
+  } as const;
+  const refineReadyItem = {
+    id: "refine",
+    label: "Keep refining the plan",
+    description: "Stay in Plan mode and send feedback so the plan can improve before implementation.",
+    action: "refine",
+  } as const;
   const menu = defineMenu<undefined, Screen, Action, ExtensionContext>({
     start: "ready",
     screens: {
@@ -202,18 +219,26 @@ export async function showReadyPlanMenu(ctx: ExtensionContext, options: ReadyPla
         title: "Proposed plan ready. What next?",
         lines: [...IMPLEMENTATION_CONTEXT_LINES, options.implementationOutcome()],
         items: [
-          {
-            id: "implement-here",
-            label: "Implement here",
-            description: "Continue in this session with the planning conversation.",
-            action: "implement-here",
-          },
-          {
-            id: "implement-fresh",
-            label: "Start fresh and implement",
-            description: "Configure one-shot model and thinking choices first.",
-            to: "fresh",
-          },
+          ...(options.freshFirst
+            ? [
+                {
+                  id: "implement-fresh",
+                  label: "Start fresh and implement",
+                  description: "Approve the plan and open a linked implementation session.",
+                  to: "fresh",
+                } as const,
+                refineReadyItem,
+              ]
+            : [
+                {
+                  id: "implement-here",
+                  label: "Implement here",
+                  description: "Continue in this session with the planning conversation.",
+                  action: "implement-here",
+                } as const,
+                freshReadyItem,
+                refineReadyItem,
+              ]),
           { id: "export", label: "Export plan…", to: "export" },
           { id: "save", label: "Save for later", action: "save" },
           { id: "stay", label: "Stay in Plan mode", action: "stay" },
@@ -241,6 +266,10 @@ export async function showReadyPlanMenu(ctx: ExtensionContext, options: ReadyPla
       },
       "start-fresh": async ({ signal }) => {
         await freshFlow.start(signal);
+        return { kind: "close" };
+      },
+      refine: async () => {
+        options.refine();
         return { kind: "close" };
       },
       export: async ({ value, signal }) =>

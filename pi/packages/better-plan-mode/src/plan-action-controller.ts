@@ -1,5 +1,6 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { resolveImplementationRuntime, snapshotAvailableImplementationModels } from "./implementation-models.ts";
+import { planArtifactPath } from "./plan-artifact.ts";
 import type { PlanExportDestination } from "./plan-export.ts";
 import {
   configuredAutoImplement,
@@ -86,6 +87,14 @@ export function createPlanActionController(options: PlanActionControllerOptions)
     return options.implementFresh(ctx, isCurrent, runtime, timing);
   };
 
+  const refine = (ctx: ExtensionContext) => {
+    const path = planArtifactPath(ctx.sessionManager.getSessionId());
+    ctx.ui.notify(
+      `Plan kept and saved to ${path}. Send feedback to refine it, or reopen /plan when you are ready to implement.`,
+      "info",
+    );
+  };
+
   return {
     async showSaved(ctx: ExtensionContext) {
       const lifecycle = options.captureLifecycle();
@@ -136,14 +145,11 @@ export function createPlanActionController(options: PlanActionControllerOptions)
     },
     async showReady(ctx: ExtensionContext) {
       const settings = options.getSettings();
-      if (configuredAutoImplement(settings) === "fresh" && options.getState().latestPlan !== undefined) {
-        if (!ctx.hasUI) {
-          ctx.ui.notify(options.statusText(), "info");
-          return;
-        }
-        const lifecycle = options.captureLifecycle();
-        if (!lifecycle.isCurrent() || lifecycle.signal.aborted) return;
-        await freshAction(ctx, lifecycle, lifecycle.signal, effectiveDefaults(ctx), "after-settled");
+      // autoImplement 'fresh' means "offer to implement", never "implement without asking":
+      // the ready menu is the approval surface and the fresh entry is promoted to the top.
+      const autoFresh = configuredAutoImplement(settings) === "fresh" && options.getState().latestPlan !== undefined;
+      if (autoFresh && !ctx.hasUI) {
+        ctx.ui.notify(options.statusText(), "info");
         return;
       }
       const lifecycle = options.captureLifecycle();
@@ -162,7 +168,9 @@ export function createPlanActionController(options: PlanActionControllerOptions)
         exportPlan: (path, signal) => options.exportPlan(ctx, path, signal, lifecycle.isCurrent),
         save: () => options.save(ctx),
         stay: () => undefined,
+        refine: () => refine(ctx),
         exit: () => options.exitReady(ctx),
+        ...(autoFresh ? { freshFirst: true } : {}),
       });
     },
   };

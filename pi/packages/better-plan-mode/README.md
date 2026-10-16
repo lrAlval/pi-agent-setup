@@ -19,7 +19,7 @@ Use a Codex-like `/plan` mode to explore a codebase, resolve important questions
 - Restores Plan state and one saved plan across resume and compaction.
 - Configures the Plan tool allowlist, reviewed shell commands, user-trusted subcommands, export path, plan reinjection, shortcut, and thinking level.
 - Selects the shell review policy with `bashMode`: `safe` keeps the reviewed read-only rules (glob-tolerant for read-only commands, Git, and `gh`), while `yolo` blocks only destructive commands.
-- Starts the fresh implementation handoff automatically on plan completion with `autoImplement: "fresh"`, and offers reusable model presets as quick picks in the fresh-implementation model screen.
+- Asks before implementing: with `autoImplement: "fresh"` a ready plan opens the ready-plan menu with **Start fresh and implement** first, and **Keep refining the plan** keeps the refinement loop open; every accepted plan is saved to `~/.pi/agent/plans/<session-id>.md`.
 - Enters Plan mode automatically for genuinely new sessions with `autostart: true`.
 - Publishes statusline state and cooperates anonymously with Workflow Mutex Protocol v1 participants.
 
@@ -386,7 +386,7 @@ The optional file is read at session start and watched for changes; only an expl
 ```
 
 `autoImplement` is `off` (default) or `fresh`.
-With `fresh`, a ready plan skips the ready-plan menu and immediately starts the linked fresh implementation session with the resolved runtime.
+With `fresh`, a ready plan opens the ready-plan menu with the fresh implementation entry first, so nothing starts until you approve it; **Keep refining the plan** stays in Plan mode for another feedback round, and the approved plan is saved to `~/.pi/agent/plans/<session-id>.md`.
 Without an interactive UI (`pi -p`) the plan stays ready and waits for `/plan`.
 
 `autostart` is `false` (default) or `true`.
