@@ -2,6 +2,7 @@
 name: safety-net
 description: Decides what's actually worth testing based on risk, not coverage percentage, and writes characterization tests to lock in current behavior before refactoring untested or legacy code. Use before refactoring anything without adequate tests, or when deciding what to test on new work.
 model: opencode-go/muse-spark-1.3-contributor
+thinking: low
 tools:
   - read
   - grep

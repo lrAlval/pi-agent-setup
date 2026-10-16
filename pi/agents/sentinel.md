@@ -3,6 +3,7 @@ name: sentinel
 description: Reviews code that touches an untrusted boundary - external input, auth/authz checks, secrets, dependencies - for actual exploitability, not a compliance checklist. Use before shipping anything that accepts external input, changes access control, or touches credentials/secrets, and when adding or upgrading a dependency. Read-only, does not fix.
 model: opencode-go/muse-spark-1.3-contributor
 systemPromptMode: replace
+thinking: low
 tools:
   - read
   - grep

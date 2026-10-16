@@ -21,32 +21,41 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:@henryqw/pi-undo",
     "npm:pi-footer",
+    "npm:@underactive/pi-topping-statusline",
     "packages/pi-observability-plugin",
     "packages/pi-eta",
-    "npm:@davecodes/pi-dcp",
     "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
     "npm:pi-codemode-toggle",
+    "npm:@nguyenquangthai/pi-omp-theme",
+    "npm:billion-context",
     "git:github.com/elpapi42/pi-fork"
   ],
   "skills": [
     "~/.agents/skills/xias-data-dashboard",
     "~/.agents/skills/xias-design-screen"
   ],
-  "theme": "atom-one-dark",
+  "theme": "titanium",
   "hideThinkingBlock": true,
   "perModeModelSelection": true,
   "modeModels": {
     "plan": "opencode-go/glm-5.3-flash:medium",
-    "build": "opencode-go/deepseek-v4.1-flash:medium"
+    "build": "opencode-go/muse-spark-1.3-contributor:medium"
   },
   "modelThinkingLevels": {
     "opencode-go/mimo-v2.6-flash": "medium",
     "opencode-go/deepseek-v4.1-flash": "medium",
-    "opencode-go/glm-5.3-flash": "medium"
+    "opencode-go/glm-5.3-flash": "medium",
+    "opencode-go/muse-spark-1.3-contributor": "medium"
   },
   "llm-wiki": {
     "notices": false,
-    "autoRecall": false
+    "autoRecall": false,
+    "customTypes": {
+      "brainstorm": "brainstorms",
+      "spike": "spikes",
+      "implementation-plan": "plans",
+      "decision": "decisions"
+    }
   },
   "defaultProvider": "opencode-go",
   "defaultModel": "glm-5.3-flash",
@@ -65,14 +74,38 @@
     "+codemode"
   ],
   "codemode": {
-    "mode": "only"
+    "mode": "on"
   },
   "pi-fork": {
     "defaultEffort": "balanced",
     "effortProfiles": {
-      "fast": { "provider": "opencode-go", "id": "deepseek-v4.1-flash", "thinking": "minimal" },
-      "balanced": { "provider": "opencode-go", "id": "muse-spark-1.3-contributor", "thinking": "low" },
-      "deep": { "provider": "opencode-go", "id": "muse-spark-1.3-contributor", "thinking": "medium" }
+      "fast": {
+        "provider": "opencode-go",
+        "id": "deepseek-v4.1-flash",
+        "thinking": "minimal"
+      },
+      "balanced": {
+        "provider": "opencode-go",
+        "id": "muse-spark-1.3-contributor",
+        "thinking": "low"
+      },
+      "deep": {
+        "provider": "opencode-go",
+        "id": "muse-spark-1.3-contributor",
+        "thinking": "medium"
+      }
+    }
+  },
+  "piOmpTheme": {
+    "preset": "claude-code",
+    "theme": {
+      "autoApply": "titanium"
+    },
+    "statusLine": {
+      "enabled": false
+    },
+    "compatibility": {
+      "allowCorePatches": true
     }
   }
 }
