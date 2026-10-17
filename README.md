@@ -127,6 +127,7 @@ Run the same checks locally before pushing: regenerate with `head -n 6 manifest.
 
 - Shipped: `omp-theme-plan-complete` for `@nguyenquangthai/pi-omp-theme` - `apply-omp-theme-plan-complete.mjs` plus `verify-omp-theme-plan-complete.mjs` and `pi-omp-theme-plan-complete-result.patch`.
 - Live-only, deliberately not vendored: `pi-core-event-command-context` (`fix-pi-core-event-command-context.mjs`), which patches `@earendil-works/pi-coding-agent` core rather than an extension. An autostarted plan-mode session never runs `/plan`, so the auto fresh-implementation handoff needs it in interactive sessions; `sync-classify.conf` keeps it out of the repo.
+- Live-only, deliberately not vendored: `pi-core-stale-emit-guard` (`fix-pi-core-stale-emit-guard.mjs`), which skips remaining `agent_settled` handlers after session replacement invalidates their context and suppresses stale-context errors from handlers already suspended; `sync-classify.conf` keeps it out of the repo.
 
 The registry is merge-managed: `install.sh` and `install.ps1` skip it during the checksum sync and then union the shipped entries with any local-only entries by name, so a machine-specific entry such as `pi-core-event-command-context` survives an install instead of being overwritten by the shipped file.
 
