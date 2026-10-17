@@ -37,6 +37,9 @@
   "theme": "titanium",
   "piOmpTheme": {
     "preset": "omp",
+    "tools": {
+      "enabled": false
+    },
     "theme": {
       "autoApply": "titanium"
     },
