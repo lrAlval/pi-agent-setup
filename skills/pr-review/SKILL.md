@@ -78,8 +78,16 @@ From repo root:
 ```
 git fetch origin pull/<N>/head
 git worktree remove --force .worktrees/pr-<N>-review/   # only if path already exists; state so
-git worktree add .worktrees/pr-<N>-review/ FETCH_HEAD
+git worktree add -b review/pr-<N>-<sha7> .worktrees/pr-<N>-review/ FETCH_HEAD
 ```
+
+Named branch, committable — never detached HEAD. All review-stage
+commits (§8 ledger, §10 fixups) happen inside this worktree on this
+branch. **The main checkout is never modified or committed to by this
+skill — any review or fix change made outside the worktree is a
+contract violation.** Verify with `git -C <main-root> status --short`
+before any commit and treat unexpected dirty files as pre-existing
+user work (do not stash, revert, or commit them).
 
 Then from worktree root: `codegraph index`.
 On interrupted init: remove the `codegraph` lock path per repo CodeGraph
@@ -96,7 +104,7 @@ review checkout until the stage-7 approval card passes.
 
 ## 6. Preflight: rules check + delegate preview (warn + continue)
 
-From the worktree (or repo) root, before any review subagents:
+From the worktree root (never the main checkout), before any review subagents:
 
 ```
 ocr rules check <touched-file> --repo <worktree-root>   # expect project rule hit
@@ -176,7 +184,8 @@ node <skill-dir>/_helpers/ledger.mjs shim reviews/pr-<N>.json --repo <repo-root>
   `complete`). Verify via `ocr session list` + `ocr session export -o`.
   Shim is included in Phase 2 scope (user-locked).
 
-Commit `reviews/pr-<N>.json` + `.html` on the work branch. The main checkout
+Commit `reviews/pr-<N>.json` + `.html` inside the review worktree on its
+named branch `review/pr-<N>-<sha7>`. The main checkout
 is never touched by review work (PR-58 lesson: 14 uncommitted main-tree
 fixes came from pre-gate in-session editing).
 
@@ -206,7 +215,8 @@ Todo `approval card` completed with user choices recorded.
 For approved findings only, in the review worktree:
 
 1. Apply minimal fix per finding (one finding → one focused edit).
-2. Commit as fixup on the work branch (never on main checkout).
+2. Commit as fixup inside the review worktree on its named branch
+   `review/pr-<N>-<sha7>` (never detached, never the main checkout).
 3. Re-run review inputs (`ocr delegate preview`, targeted subagent or
    `git diff` re-check), then:
    `node <skill-dir>/_helpers/ledger.mjs diff reviews/pr-<N>.json findings-rerun.json`
