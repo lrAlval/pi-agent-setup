@@ -3,7 +3,7 @@
     "packages/better-plan-mode",
     "npm:pi-rtk-optimizer",
     "npm:pi-subagents-lite",
-    "npm:@juicesharp/rpiv-todo",
+    "custom-extensions/pi-todo-eta",
     "npm:@dietrichgebert/ponytail",
     "npm:pi-ast-grep",
     "npm:pi-smart-fetch@0.3.17",
@@ -23,7 +23,7 @@
     "npm:pi-footer",
     "npm:@underactive/pi-topping-statusline",
     "packages/pi-observability-plugin",
-    "packages/pi-eta",
+
     "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
     "npm:pi-codemode-toggle",
     "npm:@nguyenquangthai/pi-omp-theme",

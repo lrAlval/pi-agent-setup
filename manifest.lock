@@ -4,6 +4,20 @@
 # tool:fd 10.5.0 linux-amd64:sha256:a1259cd129636efbc3fef123525c1b49e88fe5088c012630983c310e52fdfa95|https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-x86_64-unknown-linux-gnu.tar.gz linux-arm64:sha256:c0ee43802e3313a317c5af2f4eabd6ba13eeedd595af9775f05e18a13ac4f52c|https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-aarch64-unknown-linux-gnu.tar.gz darwin-amd64:sha256:7e31028c62c6955877735d0406807aa484c2a5e6f86235a59e26c29c301da590|https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-x86_64-apple-darwin.tar.gz darwin-arm64:sha256:b67e1836c468e42e411984b56e52fa7abec08c2bd22c867398e7cc134aac5e12|https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-aarch64-apple-darwin.tar.gz windows-amd64:sha256:a227701b8551c35a9931d9f6da75503cf86d88e182d71fb849a70864c5d57cd7|https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-x86_64-pc-windows-msvc.zip windows-arm64:sha256:a2bcddcfd259b05357a77bbc6cd671fdb30f63fd266a0e748305890a8c5ceaa6|https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-aarch64-pc-windows-msvc.zip
 # tool:treehouse v3.1.2 linux-amd64:sha256:bc059c6dbbcf6b11a741e92aed1d845d5b4a96f1d9c5e6f78c1aa2502669962d|https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-linux-amd64.tar.gz linux-arm64:sha256:999e6f4888cfd4e6c0b97d49a4857355208bcba080aa2c59902f7fa77b940c0a|https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-linux-arm64.tar.gz darwin-amd64:sha256:19a3a79c792139e36c1f5c3e9e0f9fdebe9127f1168b1debb40b4513ffed1319|https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-darwin-amd64.tar.gz darwin-arm64:sha256:24666ddec346b5fd1f0467f475c647d8e2ce45e80e8a84548eade97b353cbe4b|https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-darwin-arm64.tar.gz windows-amd64:sha256:da643aa5ddf2a5f4c594d4501db0263e21c5c968444025c7bdaea12eb45d9534|https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-windows-amd64.zip windows-arm64:sha256:dd1c97b3709081f93126ac74993d8210610f2c6e874b3eee39204d6a732af71c|https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-windows-arm64.zip
 # kit:ux-ui-agent-skills v2.9.6 https://github.com/plugin87/ux-ui-agent-skills
+4474bb60483d6f4f373fbb4c2116ea8523b479e0d87a73522940342b7d2691c8  custom-extensions/pi-todo-eta/package.json
+12217160e8a8acb02019fbf52056a65824eea372b23c5a4086505c64846df63f  custom-extensions/pi-todo-eta/src/bg.ts
+a34717a82565692cd84bca1131426330e1ae5bfa566092563e59b149f71bb1c1  custom-extensions/pi-todo-eta/src/db.ts
+140f06d05699dfe267a8454a31b4fe881fa6a22ebbd422e7c324ea80e7764e77  custom-extensions/pi-todo-eta/src/estimate.ts
+5a57b48af06b5bdf5a65872053e979f793312f91bddef3e19e49150599552f13  custom-extensions/pi-todo-eta/src/eta.ts
+f26b49ff046b3ec9efe7783d0b3f83a4fab899237ab2bef60e99702416db1ad3  custom-extensions/pi-todo-eta/src/history.ts
+cfc511653b16e7767c003e99c1c2f58590143a7ab0cf9a211414487975a9d4e2  custom-extensions/pi-todo-eta/src/index.ts
+cb950922b8f86e625a214782aa941489b42e7835e42f69ff29a0c57ccba76061  custom-extensions/pi-todo-eta/src/replay.ts
+dfe3f10b74b900eb6a2c86c3cbdf802ec3c04301a050cfdd4c49325bf05358ca  custom-extensions/pi-todo-eta/src/state.ts
+de8704ab9c06e42de1b0c5d0984f903a92e6013b0a22ca37e049732e4d5c17fa  custom-extensions/pi-todo-eta/src/widget.ts
+f57617844b8a32b4a36c6ce6139ddef8edf555f3668d8867c72b4a5d0baa6a97  custom-extensions/pi-todo-eta/test/db.test.ts
+635e1b3950dd0dae2ac9ae5a299fd9d1acaba9b452a3041386a6826fa55a2c3c  custom-extensions/pi-todo-eta/test/eta.test.ts
+72b0ed32f1f5664e02ef43789011b75199a527257bbd0a2fadbfd398dd4bffc4  custom-extensions/pi-todo-eta/test/state.test.ts
+c6df8ef3177fa484ea07fd76f27d9dc0c2507cc3831d8f9a53038847a161f8c6  custom-extensions/pi-todo-eta/test/widget.test.ts
 cc0202bdb9d8c0f04cee5bdcb0d9929accc999138cfe5d198792dbecb310e3ed  memory/MEMORY.md
 208f2d296543b18a276835764f9fabcb24029eee42f06d179f12eac51f3b3756  memory/USER.md
 ddc69de51be9e1f5ab0d6c33edb96513b887aaaf6ab5d4968665a4aef0a49662  memory/failures.md
@@ -160,20 +174,6 @@ bf6c08a494b0d87f16441fb9b9aecc1db9d5e791b60a654d63baf1acc5f43237  pi/packages/be
 69397c360a8c077529e53d31090cab68a4a328e8571b4cfd39ee0c4476dca1fb  pi/packages/better-plan-mode/src/tool-selection.ts
 78634e8250ba96240a49e1644a26024df5d10f94a88c8ece80873e6610da282e  pi/packages/better-plan-mode/src/workflow-mutex.ts
 b45df18f888763d005dae4d94e3c63beaec0db4172cd87fa731cbcf84da72367  pi/packages/better-plan-mode/tsconfig.json
-313f55da8b1ba287b0850c28fff0bc24bd42e2fdd651c6be623e7fd7b9950206  pi/packages/pi-eta/COMPAT.md
-4499fba14c7e907ffb43f40b933bc56c92842e710008a4e8572eb2fd1e6b1611  pi/packages/pi-eta/FOOTER.md
-251b59a509be61c2ece2eb5abf769f8ac240b84a6d438b7fe2221ee608691329  pi/packages/pi-eta/TODOS.md
-f6214115d20d497e470e572db42a9b7b368970c489e48251ae15211eeba3cd83  pi/packages/pi-eta/package.json
-2c72203217c9aa305022be154e8d55af11b9644fbe20e1a75796b4a9a30fcc0b  pi/packages/pi-eta/src/eta.ts
-e061bf5c9e76f5cd2f3d8411addca1f3beaf0187c0af066ce6cabd7ad8954835  pi/packages/pi-eta/src/history.ts
-b0d0ecf875de7df69d9b9ede531340137f803a993597036c62014d9a8430a0ea  pi/packages/pi-eta/src/index.ts
-e6c41235ef8512ae19f7550cf1e20699231fd47b8067e86756d33aaf6ce1da56  pi/packages/pi-eta/src/rpiv.ts
-ba476c9620d9a888608bf191a29442b7a8c674e7d3723729510300fd287e117f  pi/packages/pi-eta/src/widget.ts
-2d27779c155d611e0b0a284c8348cfe9e3a9d5815fc423d04ad45b8f79054496  pi/packages/pi-eta/test/eta.test.ts
-1578200ab6d8aea5a6e535703edcfa990f81f136a5df87f16015100d8879b875  pi/packages/pi-eta/test/history.test.ts
-29b06f733ba10dd1b9270b8f61b7f67c0f316be5c12092a763d3542de59ae08a  pi/packages/pi-eta/test/index.test.ts
-6d3c45c189fcf50cb1190205d07d5899168db5614377b6094349b6cde7be944d  pi/packages/pi-eta/test/rpiv.test.ts
-b5dc40e085aa57f4efc5d608e591e3d09f6690448adf301254c7c6f3834600da  pi/packages/pi-eta/test/widget.test.ts
 6dfb938d8d04e8c9f7999d9c6a2f3e7f480eb958a080d6c376bf07025e018d9b  pi/packages/pi-observability-plugin/.github/workflows/ci.yml
 1b6ef6181d5127648f8d5965cb9268d6c3e309b06740da12233b8f618cb7708d  pi/packages/pi-observability-plugin/.github/workflows/release.yml
 15a3c6a0c68a42c933be12c99b34f780dc18c08252b24ae15198e21b18c37a56  pi/packages/pi-observability-plugin/.github/workflows/zizmor.yml
@@ -207,7 +207,7 @@ ee8a492853d2ea9e3f02f67ec2d6811c08ac5ebd2c87761c80815d8345efc093  pi/patches/pat
 452ca9a20e58a3566f61fc4af57ff759d52068ae6e1e602290e879efecc38e83  pi/pi-plan-mode.json
 27aeac6f96a8471b9d02f80875ef5f63c7390063dd07de50d7ffd756b267c589  pi/scripts/session-tool-analyzer.py
 b99d54a886bee4a5f8d6fa7c41fecbe8be987785cdd741d44c965f46c01b5fb5  pi/scripts/stack-audit.sh
-bf7df53993fd02c9526a32345db1067ff97be8d5b1011ab4ad48b8132a03001f  pi/settings.json
+ebccc085de2f5b4064f74d34f7a685758f6132413cab211d051299e88a4a008b  pi/settings.json
 a00170d7a3f737bcb7ce5d383232c8d6bfceca0cd91d37ab9ad28156577f3cd8  pi/skills/agent-routing/SKILL.md
 ea230aab12a47e15194cfc5a70a6afb1859ce62f04aadc4e37c5f9c32d499483  pi/skills/slice-tasks/SKILL.md
 a5833763a3bd1a9eee281342c997f038584547390819745d6b917cafd1d302bf  pi/spark.json

@@ -33,7 +33,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `pi-ast-grep` | Syntax-aware search | Text grep false-positives; structural patterns match code, not strings |
 | `pi-mcp-adapter` | MCP server gateway | External tools need a bridge; the adapter provides it |
 | `efficient-pi-ask-user` (local fork of `@juicesharp/rpiv-ask-user-question`, see `FORK_OVERRIDES.md`) | Structured questions | Plain-text questions get vague answers; options force decisions |
-| `@juicesharp/rpiv-todo` | Session task tracking | Long tasks lose state; the todo list holds it |
+| `pi-todo-eta` (local fused extension) | SQLite-backed todos plus live ETA | Long tasks lose state and estimates drift; persistent tasks, progress widget, countdown, and calibration keep work visible |
 | `pi-background-tasks` | Background shell + agents | Long commands block; background runs notify on completion |
 | `@plannotator/pi-extension` | Plan annotation and review | Plans rot; annotation keeps them current |
 | `pi-footer` | Status bar (branch, model, ponytail) | Blind sessions; the footer shows where you are |
@@ -42,7 +42,7 @@ Windows is supported best-effort; the stack is WSL-first.
 | `@vigolium/piolium` | Extra pi tooling | Niche workflows need niche tools |
 | `pi-observability-plugin` (vendored in `pi/packages/`, Langfuse upstream) | Run observability | Sessions are opaque; traces show what happened |
 | `git:pi-community-themes` | Theme pack | Stock theme only; `atom-one-dark` and friends |
-| `pi-eta` (vendored in `pi/packages/`) | Live ETA from your todo list | Estimates drift silently; progress widget plus countdown plus calibration |
+
 | `local-bash` (local) | Guarded shell presets | Ad-hoc shell flags vary; pinned prefixes, timeouts, output caps |
 | `local-patch-guard` (local) | Patch-chain watchdog | Patched packages update silently; re-applies the remaining registry entries at session start, and `install.sh` merges shipped and local registry entries instead of overwriting them |
 | `spine-enforcer` (local) | Spine repo discipline | Goal/spec/state files rot; enforces the spine contract |
