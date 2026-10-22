@@ -1,0 +1,2 @@
+# Porting template
+Copy router/playbooks/principles/contract into target skill format. Map activation syntax; preserve routing, checkpoints, evidence semantics. Do not add hooks/MCP/automatic execution without approval. Run tests/verify.sh and target-harness routing probe.

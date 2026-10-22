@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "verdict": "request-changes",
+  "build_ref": "fixture-build",
+  "annotations": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "target": {
+        "kind": "css",
+        "value": ".hero"
+      },
+      "severity": "p1",
+      "category": "layout",
+      "comment": "Hero overflows on mobile",
+      "suggested_fix": "Constrain width at small breakpoint",
+      "screenshot_ref": "390.png"
+    }
+  ]
+}
