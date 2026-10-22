@@ -1,16 +1,12 @@
 {
-  "name": "pi-eta",
+  "name": "pi-todo-eta",
   "version": "0.1.0",
-  "description": "Live ETA from your todo list: progress widget, countdown, estimate calibration.",
+  "description": "SQLite-backed todo tracking and live ETA for pi.",
   "type": "module",
   "license": "MIT",
   "keywords": ["pi-package", "pi-extension"],
-  "pi": {
-    "extensions": ["./src/index.ts"]
-  },
-  "scripts": {
-    "test": "node --test test/*.test.ts"
-  },
+  "pi": { "extensions": ["./src/index.ts"] },
+  "scripts": { "test": "node --test test/*.test.ts" },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-agent-core": "*",

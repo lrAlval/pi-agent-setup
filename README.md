@@ -14,42 +14,51 @@ irm https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install.ps1 | 
 Re-running is always safe: the installer is strictly idempotent (see Installer guarantees).
 Windows is supported best-effort; the stack is WSL-first.
 
-## The opinionated extension stack
+## Extensions
 
-| Extension | What it is | Problem it solves |
-|---|---|---|
-| `pi-rtk-optimizer` | Tool-output compaction + savings tracking | Raw tool output floods context; rewrites and truncates it, tracks savings |
-| `@gotgenes/pi-permission-system` | Permission gate for destructive/secret paths | One wrong `rm -rf` or secret read ruins a session; risky patterns ask or deny |
-| `local-bash` | Denylist shell + bwrap sandbox lane (local, this repo) | Plan-mode blocks all mutation including scratch self-tests; command-position matching kills false positives, `reviewScratch` allows /tmp writes, `sandbox:true` runs installs/self-tests contained |
-| `better-plan-mode` (vendored in `pi/packages/`, fork of `@narumitw/pi-plan-mode`) | Truly read-only plan mode | Stock plan mode leaks write paths and has no lifecycle handoff; the fork carries the reviewed read-only policy, `bashMode: "yolo"`, and the auto fresh-implementation handoff natively, so no install-time patch is needed |
-| `pi-hermes-memory` + `pi-observational-memory` | Persistent memory across sessions | Every session starts from zero; recall budgets replace re-discovery |
-| `pi-subagents-lite` + 13 agents in `pi/agents/` | Isolated subagent delegation | Single-agent sessions waste context on exploration; delegates run isolated |
-| `git:pi-fork` | Branch-aware child forks | Blank delegates miss the working context; a fork inherits the active session branch and returns a dense `Result`/`Output`/`Evidence`/`Learnings` report |
-| `ponytail` + footer widget | Cost/savings footer | Spend is invisible; the footer shows it live |
-| `pi-caveman` | Response compression (~75%) | Verbose answers burn tokens; caveman mode compresses them |
-| `@zosmaai/pi-llm-wiki` | Interlinked markdown wiki | Decisions evaporate; the wiki keeps them searchable |
-| `@henryqw/pi-codegraph` | Structural code exploration | Grep-and-read loops burn context; one query returns symbols plus call paths |
-| `pi-smart-fetch` | Browser-grade fetching | Naive curl fails on real sites; smart fetch renders readable content |
-| `pi-ast-grep` | Syntax-aware search | Text grep false-positives; structural patterns match code, not strings |
-| `pi-mcp-adapter` | MCP server gateway | External tools need a bridge; the adapter provides it |
-| `efficient-pi-ask-user` (local fork of `@juicesharp/rpiv-ask-user-question`, see `FORK_OVERRIDES.md`) | Structured questions | Plain-text questions get vague answers; options force decisions |
-| `@juicesharp/rpiv-todo` | Session task tracking | Long tasks lose state; the todo list holds it |
-| `pi-background-tasks` | Background shell + agents | Long commands block; background runs notify on completion |
-| `@plannotator/pi-extension` | Plan annotation and review | Plans rot; annotation keeps them current |
-| `pi-footer` | Status bar (branch, model, ponytail) | Blind sessions; the footer shows where you are |
-| `@henryqw/pi-undo` | Undo for agent edits | Bad edits stick; undo reverses them |
-| `pi-hide-providers` | Provider allowlist | Dozens of providers clutter routing; hidden ones stay out |
-| `@vigolium/piolium` | Extra pi tooling | Niche workflows need niche tools |
-| `pi-observability-plugin` (vendored in `pi/packages/`, Langfuse upstream) | Run observability | Sessions are opaque; traces show what happened |
-| `git:pi-community-themes` | Theme pack | Stock theme only; `atom-one-dark` and friends |
-| `pi-eta` (vendored in `pi/packages/`) | Live ETA from your todo list | Estimates drift silently; progress widget plus countdown plus calibration |
-| `local-bash` (local) | Guarded shell presets | Ad-hoc shell flags vary; pinned prefixes, timeouts, output caps |
-| `local-patch-guard` (local) | Patch-chain watchdog | Patched packages update silently; re-applies the remaining registry entries at session start, and `install.sh` merges shipped and local registry entries instead of overwriting them |
-| `spine-enforcer` (local) | Spine repo discipline | Goal/spec/state files rot; enforces the spine contract |
-| `token-trail` (local) | Token spend trail | Spend is invisible per turn; records the trail |
-| `pi-codemode-toggle` | Codemode switch | Codemode always-on constrains; toggle per need |
-| `@davecodes/pi-dcp` | Dynamic context pruning | Long sessions fill context; mechanical pruning keeps them cheap |
-| `@barlevalon/thermo-nuclear-code-quality-review-skill` | Review skill | Reviews stay shallow; nuclear-grade depth on demand |
+Grouped by workflow. Package sources live under `pi/packages/` or `custom-extensions/`; settings and install metadata live under `pi/` and `manifest.lock`.
+
+### Safety and control
+
+- [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-permission-system) - gates destructive commands and sensitive paths.
+- [`local-bash`](pi/extensions/local-bash/) - denylist shell and bwrap sandbox lane, including contained scratch tests.
+- [`better-plan-mode`](pi/packages/better-plan-mode/) - read-only planning plus reviewed lifecycle handoff.
+- [`pi-hide-providers`](pi/extensions/) - provider allowlist keeps routing focused.
+
+### Context and memory
+
+- [`pi-rtk-optimizer`](pi/extensions/) - compacts tool output and tracks savings.
+- [`pi-hermes-memory`](pi/extensions/) + `pi-observational-memory` - persist and recall useful session context.
+- [`@zosmaai/pi-llm-wiki`](https://github.com/zosmaai/pi-llm-wiki) - interlinked Markdown knowledge base.
+- [`@henryqw/pi-codegraph`](https://github.com/henryqw/pi-codegraph) + `pi-ast-grep` - structural code search and syntax-aware matching.
+- [`pi-smart-fetch`](https://github.com/earendil-works/pi-smart-fetch) + `pi-mcp-adapter` - readable web fetch and MCP connectivity.
+- [`@davecodes/pi-dcp`](https://github.com/davecodes/pi-dcp) - prunes stale context.
+
+### Planning and execution
+
+- [`pi-subagents-lite`](pi/agents/) + 13 agents - isolated delegation.
+- [`git:pi-fork`](https://github.com/earendil-works/pi-fork) - branch-aware child sessions with structured reports.
+- [`efficient-pi-ask-user`](pi/extensions/efficient-pi-ask-user/FORK_OVERRIDES.md) - structured decisions instead of vague free-text prompts.
+- [`pi-todo-eta`](custom-extensions/pi-todo-eta/) - SQLite-backed todos, ETA, progress widget, and estimate calibration.
+- [`pi-background-tasks`](https://github.com/earendil-works/pi-background-tasks) - long-running shell jobs and agents.
+- [`@plannotator/pi-extension`](https://github.com/Plannotator/extension) - plan annotation and review.
+
+### Visibility and recovery
+
+- [`ponytail`](https://github.com/dietrichgebert/ponytail) + [`pi-footer`](pi/extensions/) - live spend, savings, branch, and model status.
+- [`@henryqw/pi-undo`](https://github.com/henryqw/pi-undo) - reverses agent edits.
+- [`pi-observability-plugin`](pi/packages/pi-observability-plugin/) - Langfuse-backed run traces.
+- [`git:pi-community-themes`](https://github.com/Agent-Field/pi-community-themes) - additional terminal themes.
+- [`@vigolium/piolium`](https://github.com/vigolium/piolium) - extra Pi tooling.
+
+### Local workflow helpers
+
+- [`local-patch-guard`](pi/extensions/local-patch-guard/) - reapplies registered patches and preserves machine-local entries.
+- [`spine-enforcer`](pi/extensions/spine-enforcer/) - enforces repo goal/spec/state conventions.
+- [`token-trail`](pi/extensions/token-trail/) - records per-turn token spend.
+- [`pi-codemode-toggle`](pi/extensions/) - toggles codemode when needed.
+- [`pi-caveman`](https://github.com/earendil-works/pi-caveman) - compresses responses for token efficiency.
+
 
 ## Token efficiency
 
@@ -111,15 +120,15 @@ Cadence: run after live hotfixes drift from repo; land via PR only, never direct
 ## CI (verify workflow)
 
 `.github/workflows/verify.yml` runs on every PR to `main` and on pushes to `main`.
-Checks: `bash -n` on `install.sh` and `sync-from-live.sh`, sourcing `sync-classify.conf`, `install.ps1` parse (skipped when `pwsh` is absent), every tracked `pi/**/*.json` parses, `manifest.lock` matches a fresh checksum walk of `pi/` + `memory/` + `skills/`, and vendored packages stay source-only (no `node_modules/` or `dist/`, `pi.extensions` points at `./src/index.ts`, no `.js` import specifiers).
-It also scans every tracked file under `pi/`, `memory/` and `skills/` for secret patterns and fails on a match, because this repository is public while `sync-from-live.sh` vendors live configuration automatically.
+Checks: `bash -n` on `install.sh` and `sync-from-live.sh`, sourcing `sync-classify.conf`, `install.ps1` parse (skipped when `pwsh` is absent), every tracked `pi/**/*.json` parses, `manifest.lock` matches a fresh checksum walk of `pi/` + `custom-extensions/` + `memory/` + `skills/`, and vendored/local packages stay source-only (no `node_modules/` or `dist/`, `pi.extensions` points at `./src/index.ts`, no `.js` import specifiers).
+It also scans every tracked file under `pi/`, `custom-extensions/`, `memory/` and `skills/` for secret patterns and fails on a match, because this repository is public while `sync-from-live.sh` vendors live configuration automatically.
 
 ### What syncs
 
 `extensions/*` is vendored wholesale, so any new local extension lands here on the next sync; `themes/*` and `subagents-lite.json` are vendored too.
 Runtime state stays live-only by policy (`RUNTIME_PATTERNS`): sessions, `npm/`, `git/`, `bin/`, `install/`, `logs/`, `extensions/*/logs/*`, `plans/`, `archive/`, `skill-audit/`, `projects-memory/`, `pi-hermes-memory/`, `models-store.json`, and the MCP caches.
 `SECRET_PATTERNS` (auth, trust, keys, tokens) are never read or copied.
-Run the same checks locally before pushing: regenerate with `head -n 6 manifest.lock > /tmp/m && (find pi memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> /tmp/m && mv /tmp/m manifest.lock`.
+Run the same checks locally before pushing: regenerate with `head -n 6 manifest.lock > /tmp/m && (find pi custom-extensions memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> /tmp/m && mv /tmp/m manifest.lock`.
 
 ## Patches
 
@@ -145,6 +154,7 @@ pi/                -> ~/.pi/agent/ (settings.json, config.yml, AGENTS.md, agents
                       plugin configs: caveman/pi-plan-mode/efficient-pi-ask-user/
                       local-bash/hide-providers *.json)
 skills/            -> ~/.agents/skills/ (47 vendored dirs; xias-* recreated as symlinks)
+custom-extensions/ -> local Pi extension source packages
 memory/            -> hermes/projects memory content (no binary state)
 manifest.lock      determinism source: tool pins + sha256 of every managed file
 install.sh         bash/macOS/Linux one-liner target
