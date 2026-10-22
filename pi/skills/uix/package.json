@@ -1,0 +1,1 @@
+{"name":"@pi/uix","private":true,"type":"module","engines":{"node":">=22"},"dependencies":{"playwright":"1.49.1","@axe-core/playwright":"4.10.2","ajv":"8.17.1"}}

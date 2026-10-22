@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "gates": [
+    {"name":"buildType","script":"gate_buildType.mjs","severity":"BLOCK","inputs":["project/src"],"thresholds":{"unsafeAny":0}},
+    {"name":"hookOrder","script":"gate_hookOrder.mjs","severity":"BLOCK","inputs":["project/src"],"thresholds":{"violations":0}},
+    {"name":"content","script":"gate_content.mjs","severity":"BLOCK","inputs":["project files"],"thresholds":{"placeholderLeaks":0}},
+    {"name":"manifestRefs","script":"gate_manifestRefs.mjs","severity":"BLOCK","inputs":["HTML assets"],"thresholds":{"missingRefs":0}},
+    {"name":"screenshotGoldens","script":"gate_screenshotGoldens.mjs","severity":"BLOCK","inputs":[".uix/*.png"],"thresholds":{"requiredWidths":[1440,834,390],"maxDiff":0.75}},
+    {"name":"a11yAxe","script":"gate_a11yAxe.mjs","severity":"BLOCK","inputs":[".uix/a11y.json"],"thresholds":{"violations":0}},
+    {"name":"contrast","script":"gate_contrast.mjs","severity":"BLOCK","inputs":["CSS color tokens"],"thresholds":{"bodyRatio":4.5,"largeTextRatio":3}},
+    {"name":"reducedMotion","script":"gate_reducedMotion.mjs","severity":"BLOCK","inputs":["CSS motion"],"thresholds":{"transitionMs":200}},
+    {"name":"fontSpacing","script":"gate_fontSpacing.mjs","severity":"BLOCK","inputs":["CSS tokens"],"thresholds":{"spacingTickRem":0.25}},
+    {"name":"responsiveSnap","script":"gate_responsiveSnap.mjs","severity":"BLOCK","inputs":[".uix/*.png"],"thresholds":{"widths":[1440,834,390],"maxOverlap":0.2}},
+    {"name":"stateMatrix","script":"gate_stateMatrix.mjs","severity":"BLOCK","inputs":["project/src"],"thresholds":{"requiredStates":["hover","focus","active","disabled","loading","error","empty","skeleton"]}},
+    {"name":"keyboardNav","script":"gate_keyboardNav.mjs","severity":"BLOCK","inputs":["project files"],"thresholds":{"traps":0}},
+    {"name":"semanticHtml","script":"gate_semanticHtml.mjs","severity":"BLOCK","inputs":["HTML"],"thresholds":{"violations":0}},
+    {"name":"assetWeight","script":"gate_assetWeight.mjs","severity":"BLOCK","inputs":["project assets"],"thresholds":{"jsGzipBytes":307200,"cssGzipBytes":153600,"imageBytes":512000}},
+    {"name":"metaTags","script":"gate_metaTags.mjs","severity":"BLOCK","inputs":["HTML head"],"thresholds":{"required":["title","description","og","favicon","lang"]}}
+  ]
+}

@@ -1,0 +1,5 @@
+import {access,readdir,readFile,stat} from "node:fs/promises";import path from "node:path";
+async function files(ctx,dirs){const out=[];async function walk(d){let es;try{es=await readdir(d,{withFileTypes:true})}catch{return}for(const e of es){if(e.name==="node_modules"||e.name===".git"||e.name==="dist")continue;const p=path.join(d,e.name);if(e.isDirectory())await walk(p);else if(/\.(?:html|tsx?|jsx?|css|scss|json|svg)$/.test(e.name)){try{out.push([p,await readFile(p,"utf8")])}catch{}}}}for(const d of dirs)await walk(path.join(ctx.project,d));return out}
+function result(name,failures){return {name,passed:failures.length===0,evidence:{metric:failures.length,raw:"static scan"},failures}}
+function scan(name,items,re,why){const failures=[];for(const [file,s] of items)for(const m of s.matchAll(re))failures.push({msg:why,file,got:m[0],want:"compliant implementation"});return result(name,failures)}
+export default async function run(ctx){const t=await files(ctx,["."]);return scan("content",t,/(?:lorem ipsum|TODO|FIXME|PLACEHOLDER|殖|[\u{1F300}-\u{1FAFF}])/giu,"Remove placeholder text, TODO markers, and emoji");}

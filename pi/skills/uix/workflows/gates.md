@@ -1,0 +1,2 @@
+# Gates
+Run node gates/runner.mjs --project PROJECT --gate all. Contract: gates/contract.yaml. Reports under project/.uix/. Capture 1440/834/390 screenshots. Browser/static heuristics do not replace visual review.
