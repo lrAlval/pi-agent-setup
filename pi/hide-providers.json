@@ -67,12 +67,6 @@
       "provider": "nvidia"
     },
     {
-      "provider": "openai"
-    },
-    {
-      "provider": "openai-codex"
-    },
-    {
       "provider": "opencode"
     },
     {
@@ -171,10 +165,6 @@
     },
     {
       "provider": "opencode-go",
-      "model": "glm-5.3-flash"
-    },
-    {
-      "provider": "opencode-go",
       "model": "hy3"
     },
     {
@@ -216,6 +206,250 @@
     {
       "provider": "opencode-go",
       "model": "grok-4.7"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "cat-jam-free"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "space-bunny"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "muse-spark-1.2-contributor"
+    },
+    {
+      "provider": "zai",
+      "model": "glm-5.3-flash"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4-turbo"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4.1"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4.1-mini"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4.1-nano"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o-2024-05-13"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o-2024-08-06"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o-2024-11-20"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5-chat-latest"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5-mini"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5-nano"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5-pro"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.1"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.2"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.2-chat-latest"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.2-pro"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.3-chat-latest"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.3-codex"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.3-codex-spark"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4-mini"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4-nano"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4-pro"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.5"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.5-pro"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-daybreak-blue-latest"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-daybreak-red-latest"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-realtime-2.1"
+    },
+    {
+      "provider": "openai",
+      "model": "o1"
+    },
+    {
+      "provider": "openai",
+      "model": "o1-pro"
+    },
+    {
+      "provider": "openai",
+      "model": "o3"
+    },
+    {
+      "provider": "openai",
+      "model": "o3-mini"
+    },
+    {
+      "provider": "openai",
+      "model": "o3-pro"
+    },
+    {
+      "provider": "openai",
+      "model": "o4-mini"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-sol"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "qwen3.8-max"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "qwen3.7-plus"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "gemini-4-argon-contributor"
+    },
+    {
+      "provider": "opencode-go",
+      "model": "longcat-2.5-preview-free"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.3-codex-spark"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.5"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-luna"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-terra"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-6-sol"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-reserve"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-daybreak-blue-latest"
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-daybreak-red-latest"
     }
   ]
 }

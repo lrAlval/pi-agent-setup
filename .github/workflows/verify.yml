@@ -57,6 +57,7 @@ jobs:
         run: |
           fail=0
           for pkg in pi/packages/*/; do
+            [ -d "$pkg" ] || continue
             for junk in node_modules dist; do
               if [ -e "${pkg}${junk}" ]; then
                 echo "::error::${pkg}${junk} is committed; vendored packages ship source only"

@@ -28,7 +28,7 @@ for f in "$PI/AGENTS.md" "$PI/pi-hermes-memory/MEMORY.md" "$PI/pi-hermes-memory/
   [ -f "$f" ] && echo "| $(basename "$f") | $(tok "$f") |"
 done
 echo "| agents/ templates ($(ls "$PI"/agents/*.md 2>/dev/null | wc -l | tr -d " ") files) | $(cat "$PI"/agents/*.md 2>/dev/null | wc -c | tr -d " ") |"
-echo "| extensions w/ tool schemas (local-bash, ask-user) | n/a (schema-injected) |"
+echo "| extensions (todo-eta, state helpers) | n/a (extension-loaded) |"
 echo
 echo "## Trigger-loaded skills (SKILL.md body loads on trigger)"
 echo
@@ -73,14 +73,11 @@ echo "## Extensions"
 echo
 echo "| extension | role | verdict |"
 echo "|---|---|---|"
-echo "| efficient-pi-ask-user | question tool | keep |"
-echo "| local-bash | shell | keep |"
-echo "| local-patch-guard | edit guard | keep |"
+echo "| todo-eta | task tracking and ETA | keep |"
+echo "| herdr-agent-state | agent state | keep |"
+echo "| orca-agent-status | agent status | keep |"
 echo "| pi-permission-system | permission guard | keep |"
-echo "| pi-rtk-optimizer | context prune | keep |"
-echo "| token-trail | usage log | keep |"
-echo "| xias-enforcer | UI gate nudge+settle | keep |"
-echo "| spine-enforcer | stack/vision/state inject + staleness | keep |"
+echo "| pi-rtk-optimizer | tool-output optimization | keep |"
 } > "$OUT"
 if [ "$BUDGET_FAIL" = 1 ]; then echo "BUDGET-FAIL: line budget exceeded, see $OUT"; exit 1; fi
 echo "wrote $OUT"

@@ -20,7 +20,7 @@
     "npm:pi-hide-providers",
     "npm:@gotgenes/pi-permission-system",
     "npm:pi-footer",
-    "packages/pi-observability-plugin",
+    "../../dev/pi-observability-plugin",
     "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
     "npm:billion-context",
     "npm:pi-subagents",
@@ -34,7 +34,7 @@
     "~/.agents/skills/xias-design-screen"
   ],
   "theme": "atom-one-dark",
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "modelThinkingLevels": {
     "opencode-go/mimo-v2.6-flash": "medium",
     "opencode-go/deepseek-v4.1-flash": "medium",
