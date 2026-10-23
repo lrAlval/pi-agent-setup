@@ -317,7 +317,6 @@ else
 fi
 
 # --- vendored packages (pi/packages/*): install deps when missing -----------------
-# better-plan-mode and pi-observability-plugin get one npm install.
 # Skipped when node_modules exists.
 if [ -d "$PI_DIR/packages" ]; then
   for PKG in "$PI_DIR"/packages/*/; do
@@ -336,12 +335,6 @@ if [ -d "$PI_DIR/packages" ]; then
     fi
   done
 fi
-
-# --- better-plan-mode -----------------------------------------------------------
-# The plan-mode read-only policy, bashMode, and auto-implementation handoff ship
-# inside the vendored pi/packages/better-plan-mode source; no install-time patch
-# is needed. The historical fix-plan-mode*.mjs patch chain was retired because
-# the fork carries those changes natively.
 
 # --- patch registry merge -------------------------------------------------------
 # pi/patches/patch-registry.json is merge-managed: the checksum sync skips it and

@@ -1,9 +1,9 @@
 {
+  "compaction": {
+    "enabled": true
+  },
   "packages": [
-    "packages/better-plan-mode",
-    "extensions/todo-eta",
     "npm:pi-rtk-optimizer",
-    "npm:pi-subagents-lite",
     "npm:@dietrichgebert/ponytail",
     "npm:pi-ast-grep",
     "npm:pi-smart-fetch@0.3.17",
@@ -19,43 +19,22 @@
     "npm:@henryqw/pi-codegraph",
     "npm:pi-hide-providers",
     "npm:@gotgenes/pi-permission-system",
-    "npm:@henryqw/pi-undo",
     "npm:pi-footer",
-    "npm:@underactive/pi-topping-statusline",
     "packages/pi-observability-plugin",
-
     "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
-    "npm:pi-codemode-toggle",
-    "npm:@nguyenquangthai/pi-omp-theme",
-    "git:github.com/elpapi42/pi-fork",
-    "npm:billion-context-pi"
+    "npm:billion-context",
+    "npm:pi-subagents",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@tanvesh01/pierre-diffs@0.2.1",
+    "npm:pi-session-cleanup",
+    "extensions/todo-eta"
   ],
   "skills": [
     "~/.agents/skills/xias-data-dashboard",
     "~/.agents/skills/xias-design-screen"
   ],
-  "theme": "titanium",
-  "piOmpTheme": {
-    "preset": "omp",
-    "tools": {
-      "enabled": false
-    },
-    "theme": {
-      "autoApply": "titanium"
-    },
-    "statusLine": {
-      "enabled": false
-    },
-    "compatibility": {
-      "allowCorePatches": true
-    }
-  },
-  "hideThinkingBlock": true,
-  "perModeModelSelection": true,
-  "modeModels": {
-    "plan": "opencode-go/glm-5.3-flash:medium",
-    "build": "opencode-go/muse-spark-1.3-contributor:medium"
-  },
+  "theme": "atom-one-dark",
+  "hideThinkingBlock": false,
   "modelThinkingLevels": {
     "opencode-go/mimo-v2.6-flash": "medium",
     "opencode-go/deepseek-v4.1-flash": "medium",
@@ -74,9 +53,10 @@
   },
   "defaultProvider": "opencode-go",
   "defaultModel": "glm-5.3-flash",
-  "lastChangelogVersion": "1.3.0",
+  "lastChangelogVersion": "1.4.0",
   "extensions": [
-    "-builtin:mcp"
+    "-builtin:mcp",
+    "-npm:@sting8k/pi-droid-styling"
   ],
   "defaultTools": [
     "read",
