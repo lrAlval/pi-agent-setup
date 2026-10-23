@@ -260,6 +260,15 @@ sync_from_manifest() {
 
 BEFORE_CHANGED=$CHANGED
 sync_from_manifest
+LEGACY_PARENT="$PI_DIR/custom-extensions"
+LEGACY_TODO_ETA="$LEGACY_PARENT/pi-todo-eta"
+if [ -L "$LEGACY_PARENT" ]; then
+  die "refusing legacy todo-eta cleanup through symlink parent: $LEGACY_PARENT"
+fi
+if [ -e "$LEGACY_TODO_ETA" ] || [ -L "$LEGACY_TODO_ETA" ]; then
+  rm -rf "$LEGACY_TODO_ETA" || die "legacy todo-eta cleanup failed: $LEGACY_TODO_ETA"
+  ok "removed legacy extension: custom-extensions/pi-todo-eta"
+fi
 if [ "$CHANGED" -eq "$BEFORE_CHANGED" ]; then
   skip "content sync: up-to-date, 0 files changed"
 else
@@ -308,8 +317,8 @@ else
 fi
 
 # --- vendored packages (pi/packages/*): install deps when missing -----------------
-# pi-eta is peer-only (no install needed); packages with real dependencies
-# (pi-observability-plugin) get one npm install. Skipped when node_modules exists.
+# better-plan-mode and pi-observability-plugin get one npm install.
+# Skipped when node_modules exists.
 if [ -d "$PI_DIR/packages" ]; then
   for PKG in "$PI_DIR"/packages/*/; do
     [ -f "${PKG}package.json" ] || continue
