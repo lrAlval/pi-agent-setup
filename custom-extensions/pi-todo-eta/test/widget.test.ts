@@ -1,2 +1,0 @@
-import {test} from "node:test";import assert from "node:assert/strict";import {buildStatusLine,buildWidgetLines,statusGlyph} from "../src/widget.ts";
-test("widget shows ETA, background badge, and status glyphs",()=>{assert.match(buildWidgetLines({tasks:[{id:1,subject:"x",status:"blocked",estMin:5}],nowMs:0,velocity:1})[0],/ETA/);assert.match(buildStatusLine({tasks:[],nowMs:0,velocity:1},{available:true,running:1}),/bg 1 run/);assert.equal(statusGlyph("blocked"),"◌");});

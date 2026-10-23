@@ -27,7 +27,7 @@ Re-running is safe: installer is idempotent. Windows is supported best-effort; s
 - [`pi-subagents-lite`](pi/agents/) - isolated delegation with 13 configured agents.
 - [`git:pi-fork`](https://github.com/earendil-works/pi-fork) - branch-aware child sessions with structured reports.
 - [`efficient-pi-ask-user`](pi/extensions/efficient-pi-ask-user/) - structured questions for decisions.
-- [`pi-todo-eta`](custom-extensions/pi-todo-eta/) - todos, ETA, progress display, and estimate calibration.
+- [`todo-eta`](pi/extensions/todo-eta/) - guarded task batches, progress widget, ETA, and estimate calibration.
 - [`pi-background-tasks`](https://github.com/earendil-works/pi-background-tasks) - long-running shell jobs and agents.
 - [`@plannotator/pi-extension`](https://github.com/Plannotator/extension) - plan annotation and review.
 - [`ponytail`](https://github.com/dietrichgebert/ponytail) and [`pi-footer`](pi/extensions/) - live spend, savings, branch, and model status.
@@ -59,7 +59,6 @@ pi/                -> ~/.pi/agent/ (settings.json, config.yml, AGENTS.md, agents
                       plugin configs: caveman/pi-plan-mode/efficient-pi-ask-user/
                       local-bash/hide-providers *.json)
 skills/            -> ~/.agents/skills/ (47 vendored dirs; xias-* recreated as symlinks)
-custom-extensions/ -> local Pi extension source packages
 memory/            -> hermes/projects memory content (no binary state)
 manifest.lock      determinism source: tool pins + sha256 of every managed file
 install.sh         bash/macOS/Linux one-liner target

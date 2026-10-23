@@ -1,0 +1,27 @@
+{
+  "name": "todo-eta",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Guarded task tracking with ETA estimation and calibration for Pi.",
+  "pi": { "extensions": ["./src/index.ts"] },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "1.1.0",
+    "@earendil-works/pi-ai": "1.1.0",
+    "@earendil-works/pi-tui": "1.1.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typebox": "^1.0.0",
+    "typescript": "^5.7.0"
+  }
+}

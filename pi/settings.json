@@ -1,9 +1,9 @@
 {
   "packages": [
     "packages/better-plan-mode",
+    "extensions/todo-eta",
     "npm:pi-rtk-optimizer",
     "npm:pi-subagents-lite",
-    "custom-extensions/pi-todo-eta",
     "npm:@dietrichgebert/ponytail",
     "npm:pi-ast-grep",
     "npm:pi-smart-fetch@0.3.17",
