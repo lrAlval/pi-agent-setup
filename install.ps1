@@ -160,18 +160,24 @@ if ((Test-Path $PiDir) -and (-not $backupTaken)) {
 $beforeChanged = $script:Changed
 function Dest-ForRel {
   param([string]$Rel)
-  if ($Rel -like "pi/*") { return (Join-Path $PiDir (($Rel -replace "^pi/", "") -replace "/", "\")) }
+  if (($Rel -like "extensions/*") -or ($Rel -like "agents/*") -or ($Rel -like "themes/*") -or ($Rel -like "config/*") -or ($Rel -like "scripts/*") -or ($Rel -like "templates/*") -or ($Rel -like "patches/*")) { return (Join-Path $PiDir (($Rel -replace "/", "\"))) }
   if ($Rel -like "memory/projects/*") { return (Join-Path $PiDir ("projects-memory\" + (($Rel -replace "^memory/projects/", "") -replace "/", "\"))) }
   if ($Rel -like "memory/*") { return (Join-Path $PiDir ("pi-hermes-memory\" + (($Rel -replace "^memory/", "") -replace "/", "\"))) }
-  if ($Rel -like "skills/*") { return (Join-Path $AgentsDir (($Rel -replace "/", "\"))) }
+  if ($Rel -like "skills/*") {
+    $rest = $Rel -replace "^skills/", ""
+    $skillName = ($rest -split "/")[0]
+    if (Test-Path (Join-Path $Src (Join-Path "skills" (Join-Path $skillName ".pi-target")))) { return (Join-Path $PiDir (Join-Path "skills" (($rest -replace "/", "\")))) }
+    return (Join-Path $AgentsDir (($Rel -replace "/", "\")))
+  }
   return ""
 }
 foreach ($line in (Get-Content $Manifest)) {
   if (($line -like "#*") -or ($line.Trim() -eq "")) { continue }
   $parts = $line -split "\s+"
   $sha = $parts[0]; $rel = $parts[1]
-  if (($rel -notlike "pi/*") -and ($rel -notlike "memory/*") -and ($rel -notlike "skills/*")) { continue }
+  if (($rel -notlike "extensions/*") -and ($rel -notlike "agents/*") -and ($rel -notlike "themes/*") -and ($rel -notlike "config/*") -and ($rel -notlike "scripts/*") -and ($rel -notlike "templates/*") -and ($rel -notlike "patches/*") -and ($rel -notlike "memory/*") -and ($rel -notlike "skills/*")) { continue }
   if ($rel -eq "skills/xias-symlinks.txt") { continue }
+  if ($rel -like "*.pi-target") { continue }
   $dest = Dest-ForRel $rel
   if ([string]::IsNullOrEmpty($dest)) { continue }
   $ok = $false
@@ -243,7 +249,7 @@ if (Test-Path $linksFile) {
   Log-Warn "xias-symlinks.txt missing in sources; skipping symlink step"
 }
 
-# --- vendored packages (pi/packages/*): install deps when missing -----------------
+# --- vendored packages (packages/*): install deps when missing -----------------
 if (Test-Path (Join-Path $PiDir "packages")) {
   foreach ($d in (Get-ChildItem -Directory (Join-Path $PiDir "packages") -ErrorAction SilentlyContinue)) {
     if (-not (Test-Path (Join-Path $d.FullName "package.json"))) { continue }
