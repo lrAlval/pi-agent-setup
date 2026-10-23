@@ -82,7 +82,7 @@ apply_transforms() { # $1=tmpfile $2=dest-rel
 
 vendor_file() { # $1=src-abs $2=dest-rel $3=reason
   local src="$1" drel="$2" reason="$3"
-  local dest="$ROOT/pi/$drel"
+  local dest="$ROOT/$drel"
   local tmp
   tmp="$(mktemp)"
   cp "$src" "$tmp"
@@ -288,10 +288,10 @@ done
 while IFS= read -r line; do
   case "$line" in '#'*) continue ;; '') continue ;; esac
   path="$(printf '%s' "$line" | awk '{print $2}')"
-  case "$path" in pi/*) ;;
+  case "$path" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|patches/*) ;;
     *) continue ;;
   esac
-  live_rel="${path#pi/}"
+  live_rel="$path"
   if [ ! -e "$LIVE_DIR/$live_rel" ]; then
     [ "$JSON" = 1 ] || log "REVIEW-DELETE $path (absent in live, not deleting)"
     record "review-delete" "$path" "absent-live"
@@ -301,7 +301,7 @@ done < "$MANIFEST"
 # --- Phase 4: regen manifest + lint -------------------------------------------
 if [ "$APPLY" = 1 ] && [ "$CHANGED" -gt 0 ]; then
   head -n 6 "$MANIFEST" > "$TMPDIR/manifest.new"
-  (cd "$ROOT" && find pi memory skills -type f | grep -v 'skills/xias-symlinks.txt' | sort | xargs sha256sum | sed 's| \./|  |') >> "$TMPDIR/manifest.new"
+  (cd "$ROOT" && find extensions agents skills themes config scripts templates patches memory -type f | grep -v 'skills/xias-symlinks.txt' | grep -v '\.pi-target' | sort | xargs sha256sum | sed 's| \./|  |') >> "$TMPDIR/manifest.new"
   mv "$TMPDIR/manifest.new" "$MANIFEST"
   bash -n "$ROOT/install.sh" || die "install.sh lint failed after regen"
   [ "$JSON" = 1 ] || ok "manifest.lock regenerated"

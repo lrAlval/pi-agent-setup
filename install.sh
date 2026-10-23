@@ -16,7 +16,7 @@
 #   - One timestamped backup of a pre-existing ~/.pi/agent, on the first run
 #     only. Re-runs never create another backup.
 #   - flock-guarded: a second concurrent run exits cleanly with "already running".
-#   - Vendored packages under pi/packages/ get one npm install when node_modules is missing.
+#   - Vendored packages under packages/ get one npm install when node_modules is missing.
 #   - Fast path: when the manifest fingerprint is unchanged and verification
 #     passes, prints "already installed (manifest <hash>), nothing to do".
 #
@@ -112,15 +112,21 @@ manifest_val() { # $1 = key prefix after '# ', e.g. 'tool:fd' -> rest of line
 MANIFEST_SHA="$(sha256sum "$MANIFEST" | awk '{print $1}')"
 MANIFEST_SHORT="$(printf '%s' "$MANIFEST_SHA" | cut -c1-12)"
 
-# Repo layout maps onto live paths: pi/ -> ~/.pi/agent/,
+# Repo layout maps onto live paths: extensions/|agents/|themes/|config/|scripts/|templates/|patches/ -> ~/.pi/agent/<same>,
 # memory/ -> ~/.pi/agent/pi-hermes-memory/ (projects/ -> projects-memory/),
-# skills/ -> ~/.agents/skills/.
+# skills/ -> ~/.agents/skills/ (except skills with a .pi-target marker -> ~/.pi/agent/skills/).
 dest_for_rel() { # $1 = manifest relpath -> prints live destination
   case "$1" in
-    pi/*) printf '%s' "$PI_DIR/${1#pi/}" ;;
+    extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|patches/*) printf '%s' "$PI_DIR/$1" ;;
     memory/projects/*) printf '%s' "$PI_DIR/projects-memory/${1#memory/projects/}" ;;
     memory/*) printf '%s' "$PI_DIR/pi-hermes-memory/${1#memory/}" ;;
-    skills/*) printf '%s' "$AGENTS_DIR/skills/${1#skills/}" ;;
+    skills/*)
+      rest="${1#skills/}"; name="${rest%%/*}"
+      if [ -f "$SRC/skills/$name/.pi-target" ]; then
+        printf '%s' "$PI_DIR/skills/$rest"
+      else
+        printf '%s' "$AGENTS_DIR/skills/$rest"
+      fi ;;
   esac
 }
 
@@ -133,8 +139,9 @@ verify_installed() {
     case "$line" in \#*|"") continue ;; esac
     sha="$(printf '%s' "$line" | awk '{print $1}')"
     rel="$(printf '%s' "$line" | awk '{print $2}')"
-    case "$rel" in pi/*|memory/*|skills/*) ;; *) continue ;; esac
+    case "$rel" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|patches/*|memory/*|skills/*) ;; *) continue ;; esac
     [ "$rel" = "skills/xias-symlinks.txt" ] && continue
+    case "$rel" in *.pi-target) continue ;; esac
     dest="$(dest_for_rel "$rel")"
     [ -n "$dest" ] || continue
     if [ -f "$dest" ]; then
@@ -240,8 +247,9 @@ sync_from_manifest() {
     case "$line" in \#*|"") continue ;; esac
     sha="$(printf '%s' "$line" | awk '{print $1}')"
     rel="$(printf '%s' "$line" | awk '{print $2}')"
-    case "$rel" in pi/*|memory/*|skills/*) ;; *) continue ;; esac
+    case "$rel" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|patches/*|memory/*|skills/*) ;; *) continue ;; esac
     [ "$rel" = "skills/xias-symlinks.txt" ] && continue
+    case "$rel" in *.pi-target) continue ;; esac
     dest="$(dest_for_rel "$rel")"
     [ -n "$dest" ] || continue
     if [ -f "$dest" ] && echo "$sha  $dest" | sha256sum -c - >/dev/null 2>&1; then
@@ -305,7 +313,7 @@ else
   warn "xias-symlinks.txt missing in sources; skipping symlink step"
 fi
 
-# --- vendored packages (pi/packages/*): install deps when missing -----------------
+# --- vendored packages (packages/*): install deps when missing -----------------
 # Packages with real dependencies get one npm install. Skipped when node_modules exists.
 if [ -d "$PI_DIR/packages" ]; then
   for PKG in "$PI_DIR"/packages/*/; do
