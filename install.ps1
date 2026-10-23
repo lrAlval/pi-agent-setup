@@ -245,11 +245,6 @@ if (Test-Path $linksFile) {
   Log-Warn "xias-symlinks.txt missing in sources; skipping symlink step"
 }
 
-# --- better-plan-mode -----------------------------------------------------------
-# The plan-mode read-only policy, bashMode, and auto-implementation handoff ship
-# inside the vendored pi/packages/better-plan-mode source; the historical
-# fix-plan-mode*.mjs patch chain was retired because the fork carries it natively.
-
 # --- vendored packages (pi/packages/*): install deps when missing -----------------
 if (Test-Path (Join-Path $PiDir "packages")) {
   foreach ($d in (Get-ChildItem -Directory (Join-Path $PiDir "packages") -ErrorAction SilentlyContinue)) {

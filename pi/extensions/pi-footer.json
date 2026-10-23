@@ -7,7 +7,7 @@
       {
         "id": "model-provider-muyyno90-xigkry",
         "type": "model-provider",
-        "enabled": false,
+        "enabled": true,
         "options": {
           "raw": true,
           "icon": "",
@@ -19,7 +19,7 @@
       {
         "id": "thinking-level-muyyno90-tyhtxe",
         "type": "thinking-level",
-        "enabled": false,
+        "enabled": true,
         "options": {
           "raw": false,
           "hideWhenEmpty": true,
@@ -33,7 +33,7 @@
       {
         "id": "context-length-muyyno90-5chran",
         "type": "context-length",
-        "enabled": true,
+        "enabled": false,
         "options": {
           "raw": false,
           "hideWhenZero": false,
@@ -103,7 +103,7 @@
         "options": {
           "raw": false,
           "hideWhenZero": true,
-          "icon": "",
+          "icon": "ch ",
           "fg": "cyan",
           "bg": "default",
           "bold": false,
@@ -114,7 +114,7 @@
       {
         "id": "context-bar-muyz5sq6-g78cl1",
         "type": "context-bar",
-        "enabled": false,
+        "enabled": true,
         "options": {
           "raw": false,
           "hideWhenEmpty": false,
@@ -177,8 +177,7 @@
       "background-tasks",
       "llm-wiki",
       "mcp",
-      "pi-codegraph",
-      "plan-mode"
+      "pi-codegraph"
     ]
   }
 }
