@@ -1,6 +1,8 @@
 # pi-agent-setup
 
-Vanilla pi gives you a model and tools. This repo turns it into an opinionated, ready-to-install agent stack: extensions, subagents, skills, rules, memory, and token-efficiency features. Install with one line:
+An opinionated [Pi](https://pi.dev/) setup with curated extensions, skills, agents, and local configuration.
+
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install.sh | bash
@@ -10,56 +12,58 @@ curl -fsSL https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install
 irm https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install.ps1 | iex
 ```
 
-Re-running is safe: installer is idempotent. Windows is supported best-effort; stack is WSL-first.
+The installer can be rerun safely. Provider authentication stays local and is never included here.
 
 ## Extensions
 
-- [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-permission-system) - gates destructive commands and sensitive paths.
-- [`pi-hide-providers`](pi/extensions/) - keeps provider routing focused.
-- [`pi-rtk-optimizer`](pi/extensions/) - compacts tool output and tracks savings.
-- [`pi-hermes-memory`](pi/extensions/) and `pi-observational-memory` - persist and recall session context.
-- [`@zosmaai/pi-llm-wiki`](https://github.com/zosmaai/pi-llm-wiki) - searchable, interlinked Markdown knowledge base.
-- [`@henryqw/pi-codegraph`](https://github.com/henryqw/pi-codegraph) and `pi-ast-grep` - structural code exploration and syntax-aware search.
-- [`pi-smart-fetch`](https://github.com/earendil-works/pi-smart-fetch) and `pi-mcp-adapter` - readable web fetch and MCP connectivity.
-- [`@davecodes/pi-dcp`](https://github.com/davecodes/pi-dcp) - prunes stale context.
-- [`pi-subagents-lite`](pi/agents/) - isolated delegation with 13 configured agents.
-- [`git:pi-fork`](https://github.com/earendil-works/pi-fork) - branch-aware child sessions with structured reports.
-- [`todo-eta`](pi/extensions/todo-eta/) - guarded task batches, progress widget, ETA, and estimate calibration.
-- [`pi-background-tasks`](https://github.com/earendil-works/pi-background-tasks) - long-running shell jobs and agents.
-- [`@plannotator/pi-extension`](https://github.com/Plannotator/extension) - plan annotation and review.
-- [`ponytail`](https://github.com/dietrichgebert/ponytail) and [`pi-footer`](pi/extensions/) - live spend, savings, branch, and model status.
-- [`@henryqw/pi-undo`](https://github.com/henryqw/pi-undo) - reverses agent edits.
-- [`pi-observability-plugin`](pi/packages/pi-observability-plugin/) - Langfuse-backed run traces.
-- [`git:pi-community-themes`](https://github.com/Agent-Field/pi-community-themes) - additional terminal themes.
-- [`@vigolium/piolium`](https://github.com/vigolium/piolium) - extra Pi tooling.
-- [`spine-enforcer`](pi/extensions/spine-enforcer/) - enforces goal, spec, and state conventions.
-- [`pi-codemode-toggle`](pi/extensions/) - toggles codemode when needed.
-- [`pi-caveman`](https://github.com/earendil-works/pi-caveman) - compresses responses for token efficiency.
+### Public packages
 
-## Skills and rules
+- [pi-rtk-optimizer](https://pi.dev/packages/pi-rtk-optimizer) - Optimize tool output; this repo also includes local configuration.
+- [@dietrichgebert/ponytail](https://pi.dev/packages/@dietrichgebert/ponytail) - Code-quality review and cost insights.
+- [pi-ast-grep](https://pi.dev/packages/pi-ast-grep) - Structural code search.
+- [pi-smart-fetch](https://pi.dev/packages/pi-smart-fetch) - Browser-grade web fetching.
+- [pi-caveman](https://pi.dev/packages/pi-caveman) - Compact response mode.
+- [pi-background-tasks](https://pi.dev/packages/pi-background-tasks) - Background shell commands and agents.
+- [@zosmaai/pi-llm-wiki](https://pi.dev/packages/@zosmaai/pi-llm-wiki) - Searchable, linked knowledge base.
+- [@plannotator/pi-extension](https://pi.dev/packages/@plannotator/pi-extension) - Annotate and review plans.
+- [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter) - Connect to MCP servers.
+- [@vigolium/piolium](https://pi.dev/packages/@vigolium/piolium) - Additional Pi tools.
+- [pi-hermes-memory](https://pi.dev/packages/pi-hermes-memory) - Persistent user and project memory.
+- [pi-observational-memory](https://pi.dev/packages/pi-observational-memory) - Compress and recall session context.
+- [@henryqw/pi-codegraph](https://pi.dev/packages/@henryqw/pi-codegraph) - Explore code symbols and call paths.
+- [pi-hide-providers](https://pi.dev/packages/pi-hide-providers) - Hide unused model providers.
+- [@gotgenes/pi-permission-system](https://pi.dev/packages/@gotgenes/pi-permission-system) - Gate sensitive and destructive operations; this repo also includes local configuration.
+- [pi-footer](https://pi.dev/packages/pi-footer) - Show session, model, and cost status.
+- [@barlevalon/thermo-nuclear-code-quality-review-skill](https://pi.dev/packages/@barlevalon/thermo-nuclear-code-quality-review-skill) - In-depth code review skill.
+- [billion-context](https://pi.dev/packages/billion-context) - Context folding and cache-health tools.
+- [pi-subagents](https://pi.dev/packages/pi-subagents) - Delegate work to isolated agents.
+- [@juicesharp/rpiv-ask-user-question](https://pi.dev/packages/@juicesharp/rpiv-ask-user-question) - Structured user questions.
+- [@tanvesh01/pierre-diffs](https://pi.dev/packages/@tanvesh01/pierre-diffs) - Review code diffs in a visual interface.
+- [pi-session-cleanup](https://pi.dev/packages/pi-session-cleanup) - Clean up old sessions.
 
-- `skills/` contains 47 vendored skills; installer recreates 25 XIAS kit skills as symlinks to the installed UX/UI kit.
-- `pi/AGENTS.md` keeps always-loaded guidance lean and routes specialized rules through skills and extensions. Its default-on plan gate is instruction-only, with no plan-mode extension or mode-specific settings.
-- `ui-sdlc` coordinates intent, design, build, gates, review, validation, and delivery; XIAS is the design-system backbone.
+### Public GitHub packages
 
-## Token efficiency
+- [pi-community-themes](https://github.com/hasit/pi-community-themes) - Community themes for Pi.
 
-Compaction, concise responses, persistent recall, structural search, isolated agents, and model routing reduce rediscovery and context overhead; live savings appear in the footer and RTK tracking.
+### In-house and unpublished
 
-## Repository layout
+- [`todo-eta`](pi/extensions/todo-eta) - Task tracking with ETA estimates.
+- [`herdr-agent-state.ts`](pi/extensions/herdr-agent-state.ts) - Shared agent state helpers.
+- [`orca-agent-status.ts`](pi/extensions/orca-agent-status.ts) - Orca agent status integration.
+- [`pi-permission-system` config](pi/extensions/pi-permission-system/config.json) - Local configuration for [@gotgenes/pi-permission-system](https://pi.dev/packages/@gotgenes/pi-permission-system).
+- [`pi-rtk-optimizer` config](pi/extensions/pi-rtk-optimizer/config.json) - Local configuration for [pi-rtk-optimizer](https://pi.dev/packages/pi-rtk-optimizer).
+- `pi-observability-plugin` - Local checkout at `~/dev/pi-observability-plugin`; not bundled, so only available where that checkout exists. Built on [Langfuse](https://github.com/langfuse/langfuse).
 
-```
-pi/                -> ~/.pi/agent/ (settings.json, config.yml, AGENTS.md, agents/,
-                      extensions/, packages/, patches/, scripts/, skills/,
-                      plugin configs: caveman/hide-providers *.json)
-skills/            -> ~/.agents/skills/ (47 vendored dirs; xias-* recreated as symlinks)
-memory/            -> hermes/projects memory content (no binary state)
-manifest.lock      determinism source: tool pins + sha256 of every managed file
-install.sh         bash/macOS/Linux one-liner target
-install.ps1        Windows PowerShell twin
-```
+## Skills and agents
 
-## Development
+- `skills/` contains 48 shared skill directories.
+- `pi/skills/` contains repo-specific `agent-routing` and `slice-tasks` skills.
+- `pi/agents/` contains 25 agent definitions.
+- The XIAS design skills are installed from `~/.agents/skills`.
 
-- Run installer changes in a scratch HOME with `bwrap`, never against live configuration.
-- Run repository checks with `bash -n install.sh sync-from-live.sh`, JSON validation, and manifest checksum verification before submitting.
+## Layout
+
+- `pi/` - Pi settings, agents, extensions, and scripts copied to `~/.pi/agent/`.
+- `skills/` - Shared skills installed to `~/.agents/skills/`.
+- `memory/` - Portable memory content; credentials and runtime databases are excluded.
+- `install.sh` and `install.ps1` - Bash and PowerShell installers.

@@ -172,8 +172,6 @@ foreach ($line in (Get-Content $Manifest)) {
   $sha = $parts[0]; $rel = $parts[1]
   if (($rel -notlike "pi/*") -and ($rel -notlike "memory/*") -and ($rel -notlike "skills/*")) { continue }
   if ($rel -eq "skills/xias-symlinks.txt") { continue }
-  # Merge-managed below: the patch registry unions shipped and local entries.
-  if ($rel -eq "pi/patches/patch-registry.json") { continue }
   $dest = Dest-ForRel $rel
   if ([string]::IsNullOrEmpty($dest)) { continue }
   $ok = $false
@@ -262,44 +260,6 @@ if (Test-Path (Join-Path $PiDir "packages")) {
     } else {
       Log-Warn "package $($d.Name) needs deps but npm is missing; install Node.js then re-run"
     }
-  }
-}
-
-# --- patch registry merge -------------------------------------------------------
-# pi/patches/patch-registry.json is merge-managed: the checksum sync skips it and
-# this step unions the shipped entries with any local-only entries by name (shipped
-# wins on conflict), so a machine-specific patch entry survives an install.
-$RegistryBase = Join-Path $Src "pi\patches\patch-registry.json"
-$Registry = Join-Path $PiDir "patches\patch-registry.json"
-if (Test-Path $RegistryBase) {
-  if ((Test-Path $Registry) -and (Get-Command node -ErrorAction SilentlyContinue)) {
-    $mergeOut = & node -e '
-const fs = require("fs");
-const [basePath, localPath] = process.argv.slice(1);
-const base = JSON.parse(fs.readFileSync(basePath, "utf8"));
-const local = JSON.parse(fs.readFileSync(localPath, "utf8"));
-const names = new Set((base.entries || []).map((e) => e.name));
-const extras = (local.entries || []).filter((e) => !names.has(e.name));
-const merged = { ...base, versions: { ...(local.versions || {}), ...(base.versions || {}) }, entries: [...(base.entries || []), ...extras] };
-const next = JSON.stringify(merged, null, 2) + "\n";
-if (next === fs.readFileSync(localPath, "utf8")) {
-  console.log("NOCHANGE");
-} else {
-  fs.writeFileSync(localPath + ".tmp", next);
-  fs.renameSync(localPath + ".tmp", localPath);
-  console.log("extras:" + extras.map((e) => e.name).join(","));
-}
-' $RegistryBase $Registry 2>&1
-    if ($LASTEXITCODE -eq 0) {
-      if ($mergeOut -eq "NOCHANGE") { Log-Skip "patch registry: shipped and local entries already merged" }
-      elseif ($mergeOut -like "extras:*") { Log-Ok "patch registry: kept local entries ($($mergeOut.Substring(7)))" }
-    } else {
-      Log-Warn "patch registry merge failed: $mergeOut"
-    }
-  } else {
-    New-Item -ItemType Directory -Force -Path (Split-Path $Registry) | Out-Null
-    Copy-Item $RegistryBase $Registry -Force
-    Log-Warn "patch registry: node missing, installed the shipped entries without merging local ones"
   }
 }
 

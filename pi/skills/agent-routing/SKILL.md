@@ -1,12 +1,21 @@
 ---
 name: agent-routing
-description: Load before delegating to a subagent, leasing a treehouse worktree, doing .NET work, or asking the user a question. Carries the subagent table, worktree policy, dotnet-skills routing, and ask_user_question rules.
+description: Route delegation, worktrees, lanes, dotnet, or token-tool questions to the right granular skill. Load before spawning subagents, leasing worktrees, or .NET work.
 ---
 
-# Agent routing
+# Agent routing (router)
 
-Applies across every pi session and every repo. Complement the primary agent
-(build/plan) with subagents; delegate instead of doing the work inline.
+Thin orchestrator. Route, then load the target skill. No mechanics live here.
+
+| Concern | Skill |
+|---|---|
+| Delegate to subagents, fork vs bg_delegate vs Agent | `subagent-delegation` |
+| Lease/return treehouse worktrees, PR-ending contract | `treehouse-worktrees` |
+| Parallel implementation lanes | `impl-lanes` |
+| .NET skills, quality gates | `dotnet-routing` |
+| ast_grep/fd/rtk/bg_run/codegraph tooling | `token-tools` |
+| Asking the user | AGENTS.md Asking section (single source of truth) |
+| Library/API docs | `find-docs` skill |
 
 ## Non-negotiables
 
@@ -15,150 +24,3 @@ Applies across every pi session and every repo. Complement the primary agent
 - Never suggest infrastructure changes before `foreman`.
 - On first contact with a repo this session, delegate discovery to `surveyor` before anything else.
 - For refactors, get input from `blast-radius` and `safety-net`.
-
-## Available subagents
-
-| Agent | Delegate to it when |
-|---|---|
-| `surveyor` | First contact with a repo this session, before anything else. |
-| `scope-sharpener` | Request lacks explicit acceptance criteria; scope is unclear. |
-| `blast-radius` | Before editing shared, public, or unclear-ownership code. |
-| `bug-detective` | Any bug report, before proposing a fix. |
-| `perf-doctor` | Any performance report or "why is this slow", before fixing. |
-| `skeptic` | Nontrivial plan exists; adversarial pre-build/pre-merge review. |
-| `review` | Routine diff review before commit, or reviewing named files. Pre-commit: proactively offer a plannotator review (`plannotator-review`); large multi-file changesets: generate a `saga` walkthrough. |
-| `advisor` | Plan-finalized and pre-commit checkpoints; skip silently if unavailable. |
-| `qa` | After build: E2E-first scenarios, gates, diff scan. Before `safety-net`/`release-scribe`. |
-| `safety-net` | Refactoring weak-coverage code, or finishing new nontrivial logic. |
-| `sentinel` | Untrusted boundary: external input, auth, secrets, dependencies. |
-| `release-scribe` | Before a PR or any nontrivial commit. |
-| `foreman` | Cloud, IaC, CI/CD, or sysadmin work. |
-| `scout` | External, library, or API behavior you cannot verify locally (pi builtin). |
-
-## Delegation mechanics (pi-subagents-lite)
-
-The delegation surface is three tools: `Agent` (params `prompt`, `description`,
-`agent`, `run_in_background`, `worktree_path`), `AgentStatus`, `StopAgent`.
-Agent types are the markdown files in `~/.pi/agent/agents/`; the `agent`
-parameter is one of those names. `run_in_background: true` returns immediately -
-check `AgentStatus` rather than blocking.
-
-In an agent file, `tools:` must be a YAML **array** (`tools: [read, grep]`), not
-a comma string; a comma string is ignored and the agent gets every tool.
-
-Long-running shell work goes through `bg_run` (name it) plus `bg_logs`;
-completion notifies the session, so do not poll.
-
-## Branch-aware forks (pi-fork)
-
-`fork` (extension `git:github.com/elpapi42/pi-fork`) spawns a child `pi` seeded
-from a temporary JSONL snapshot of the **current active session branch** and
-returns its report as `Result` / `Output` / `Evidence` / `Learnings`. Children
-load normal extensions, run with `offline: true`, and get full tools - including
-`write`.
-
-Pick the surface by whether the child needs this conversation:
-
-| Need | Surface |
-|---|---|
-| Full working context; noisy exploration, review, or validation | `fork` |
-| Cheap inspect-only read, no writes, conversation projection is enough | `bg_delegate` |
-| A pinned persona with its own instructions and tool list | `Agent` plus `~/.pi/agent/agents/*.md` |
-
-Effort profiles map to models: `fast` = `opencode-go/deepseek-v4.1-flash`
-(minimal), `balanced` = `opencode-go/muse-spark-1.3-contributor` (low), `deep` =
-`opencode-go/muse-spark-1.3-contributor` (medium). Use `fast` only for narrow
-mechanical work, `deep` for risky, ambiguous, architectural, or review-heavy
-work. Give a fork one task and ask for anchors - paths, line numbers, commands -
-not a summary.
-
-Caveats: a fork child inherits the branch, so treat its report as untrusted
-context until its claims are checked; `fork` children can write and `fork` is in
-`defaultPlanTools`, so plan mode is **not** a write barrier for a fork child. Run
-mutating forks in a leased worktree, never in the shared clone.
-
-## Treehouse worktrees
-
-Agents work in isolated worktrees leased from a shared treehouse pool, so
-parallel sessions never collide and your clone stays your workspace.
-Treehouse is agent-exclusive - humans never run it; only the orchestrator ever
-invokes `treehouse`. The committed `treehouse.toml` in each repo caps that
-repo's pool at four worktrees cut from `develop`.
-
-Before the first `treehouse get` in a repo, the orchestrator checks the repo
-root for `treehouse.toml`. An existing `treehouse.toml` is left untouched - the
-committed config always wins. A missing one is seeded as an uncommitted
-working-tree file, never committed: `max_trees = 4` plus `base_branch =
-"develop"` when `develop` exists (local branch or `origin/develop`),
-`base_branch = "main"` when only `main` exists, and no `base_branch` line when
-neither exists so treehouse infers the trunk.
-
-Every repo-changing feature session runs inside one leased treehouse worktree,
-shared by all subagents no matter how many are used:
-
-    treehouse get -b feature/<slug> --lease --lease-holder pi-<session-slug> --json
-
-- Only the orchestrator touches treehouse pool state. Subagents never invoke `treehouse`.
-- The orchestrator passes the worktree's absolute path to every subagent; all of them work inside that one directory, not one worktree per lane.
-- The lease persists across turns until the feature is done, then is re-acquired when the next repo change needs edits.
-- Git repos only. When the session's directory is not a git repo, work directly in the cwd and skip treehouse.
-- If treehouse cannot deliver a worktree (exit 1: pool exhausted, non-repo, binary missing), fail loud - report and ask the user, never fall back to the shared cwd silently.
-
-When the feature is done:
-
-    treehouse return <worktree-path> --if-lease-id <lease-id>
-
-- If the worktree is dirty, first commit the remaining work on the feature branch, then return. Never use `--force` without the user's explicit approval.
-- Returning releases the lease only. The orchestrator never merges the feature branch into the repo's main line - that is always the user's call.
-- The PR-ending contract (commit -> push -> `gh pr create --fill` -> return -> report URL) is defined in AGENTS.md; lease/return/seeding mechanics stay here.
-
-## Asking
-
-Prefer the host's native question tool over plain text: on pi use
-`ask_user_question` (up to 6 questions per call, 2-4 options each,
-header <=16 chars, recommended option first), in plan mode
-`plan_mode_question` (1-3 per call); on opencode use its `question` tool
-with the same batching. Put your recommended answer first as one of the
-options, and let the tool's own display handle formatting - no custom
-markdown or emoji on top of it.
-If no question tool is available, ask in plain text, one question at
-a time, in whatever style the host already uses. Don't invent a custom template.
-
-## Library and API docs
-
-For any library, framework, SDK, or CLI documentation, load the `find-docs`
-skill. Prefer it over web search and over answering from memory.
-
-## .NET work
-
-Prefer retrieval-led reasoning over pretraining: skim repo patterns -> consult
-dotnet skills by name -> implement the smallest change -> note conflicts.
-
-- Routing: C#/quality -> `modern-csharp-coding-standards`, `csharp-concurrency-patterns`, `api-design`, `type-design-performance`, `r3-reactive-extensions`; Web/Aspire -> `aspire-service-defaults`, `aspire-integration-testing`, `transactional-emails`; Data -> `efcore-patterns`, `database-performance`; DI/config -> `dependency-injection-patterns`, `microsoft-extensions-configuration`; Testing -> `testcontainers-integration-tests`, `playwright-blazor-testing`, `snapshot-testing`.
-- Quality gates: `dotnet-slopwatch` after substantial new/refactored/LLM-authored code; `crap-analysis` after tests change in complex code.
-- Stack opinions: also consult the `dotnet` section of global OPINIONS.md plus project OPINIONS.md deviations (project wins).
-
-## Lanes
-
-After a plan exists and work partitions cleanly: at most 3 lanes, one-file-one-lane (each file in exactly one lane, no overlap).
-Each lane is a background subagent (`run_in_background: true`) working only in the shared treehouse worktree; lanes self-verify their file set and report back.
-After all lanes report, the orchestrator runs the full test suite once in the shared worktree; cross-lane dependencies are resolved explicitly, never merged blindly.
-
-## Token efficiency tools
-
-Prefer deterministic CLI tools over naive shell commands. Highlights: `ast_grep`
-over `grep`/`rg` for structural search, pi's native `find` tool for
-gitignore-aware name searches and `fd` over `find` for complex/regex/multi-filter
-queries (add `-H -I` for hidden/gitignored files), and `bg_run` + `bg_logs` for
-commands over ~30s or that stream output instead of polling bash.
-
-This stack does not ship pi-lens or billion-context. For symbol and call-path
-exploration use `codegraph_explore`; for structural search use `ast_grep`; for
-type and diagnostic checks run `tsc --noEmit` (or the repo's own lint/type
-script) instead of an LSP tool.
-
-rtk rewrite basics: pipe oversized tool output through `rtk` to rewrite it into compact form before it enters context; use it on repetitive logs, listings, and diffs, never on exact-match evidence (hashes, IDs, error strings).
-`ast-grep`/`fd` guidance: reach for `ast_grep` when a text search would need manual filtering (symbol refs, call sites); reach for `fd` when selecting files by name pattern across a tree instead of reading directories.
-Named `bg_run` convention: every background task gets a short human-readable name (2-6 words); rely on the completion notification plus `bg_logs` instead of polling.
-Read-only delegates (survey, plan-mode, research) carry a step cap (`maxTurns`, mirroring a ~40-step scout budget); implementation and verification lanes run uncapped on the default route.
-Mechanical request-level pruning (dedup + error purge) is handled automatically by pi-dcp; keep tool output compact yourself and do not manually fight the pruner.

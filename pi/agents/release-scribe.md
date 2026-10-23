@@ -1,7 +1,7 @@
 ---
 name: release-scribe
 description: Writes commit messages, PR descriptions, and changelog entries that communicate intent, risk, and rollback plan - not a restatement of the diff. Use before committing or opening a PR for a nontrivial change.
-model: opencode-go/muse-spark-1.3-contributor
+model: opencode-go/deepseek-v4.1-flash
 systemPromptMode: replace
 thinking: low
 tools:
