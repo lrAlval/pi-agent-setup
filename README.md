@@ -134,7 +134,7 @@ The XIAS design skills are kit-managed symlinks listed in `skills/xias-symlinks.
 - [pi-observational-memory](https://pi.dev/packages/pi-observational-memory) - Compress and recall session context.
 - [@henryqw/pi-codegraph](https://pi.dev/packages/@henryqw/pi-codegraph) - Explore code symbols and call paths.
 - [pi-hide-providers](https://pi.dev/packages/pi-hide-providers) - Hide unused model providers.
-- [@gotgenes/pi-permission-system](https://pi.dev/packages/@gotgenes/pi-permission-system) - Gate sensitive and destructive operations; this repo also includes local configuration.
+- [@pify/yolo](https://pi.dev/packages/@pify/yolo) - Session-scoped command safety modes with a catastrophic-command block floor and secret-material checks. Fresh sessions start in Approve; use `/yolo auto` when needed. Checkpoints cover tracked Git state only, not untracked/ignored files or external effects.
 - [pi-footer](https://pi.dev/packages/pi-footer) - Show session, model, and cost status.
 - [@barlevalon/thermo-nuclear-code-quality-review-skill](https://pi.dev/packages/@barlevalon/thermo-nuclear-code-quality-review-skill) - In-depth code review skill.
 - [billion-context](https://pi.dev/packages/billion-context) - Context folding and cache-health tools.
@@ -155,7 +155,6 @@ The XIAS design skills are kit-managed symlinks listed in `skills/xias-symlinks.
 - [`stream-rules`](extensions/stream-rules) - Bounded turn-boundary rule corrections from a JSONL rule file.
 - [`herdr-agent-state.ts`](extensions/herdr-agent-state.ts) - Shared agent state helpers.
 - [`orca-agent-status.ts`](extensions/orca-agent-status.ts) - Orca agent status integration.
-- [`pi-permission-system` config](extensions/pi-permission-system/config.json) - Local configuration for [@gotgenes/pi-permission-system](https://pi.dev/packages/@gotgenes/pi-permission-system).
 - [`pi-rtk-optimizer` config](extensions/pi-rtk-optimizer/config.json) - Local configuration for [pi-rtk-optimizer](https://pi.dev/packages/pi-rtk-optimizer).
 - `pi-observability-plugin` - Local checkout at `~/dev/pi-observability-plugin`; not bundled, so only available where that checkout exists. Built on [Langfuse](https://github.com/langfuse/langfuse).
 
@@ -176,7 +175,7 @@ The XIAS design skills are kit-managed symlinks listed in `skills/xias-symlinks.
 - `memory/` - Portable memory content; credentials and runtime databases are excluded.
 - `install.sh` and `install.ps1` - Bash and PowerShell installers.
 - `manifest.lock` - SHA-256 of every vendored file; the installers verify against it. Never hand-edit.
-- `sync-from-live.sh` + `sync-classify.conf` - Vendor vetted changes from live `~/.pi/agent` back into the repo.
+- `sync-from-live.sh` + `sync-classify.conf` - Vendor vetted changes from live `~/.pi/agent` back into the repo; flat agent config files map to `config/`, and absent-live files are review-only.
 
 ## Install
 

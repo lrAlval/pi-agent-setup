@@ -18,7 +18,6 @@
     "git:https://github.com/hasit/pi-community-themes",
     "npm:@henryqw/pi-codegraph",
     "npm:pi-hide-providers",
-    "npm:@gotgenes/pi-permission-system",
     "npm:pi-footer",
     "../../dev/pi-observability-plugin",
     "npm:@barlevalon/thermo-nuclear-code-quality-review-skill",
@@ -27,7 +26,8 @@
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@tanvesh01/pierre-diffs@0.2.1",
     "npm:pi-session-cleanup",
-    "extensions/todo-eta"
+    "extensions/todo-eta",
+    "npm:@pify/yolo@0.16.1"
   ],
   "skills": [
     "~/.agents/skills/xias-data-dashboard",

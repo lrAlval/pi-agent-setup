@@ -66,7 +66,7 @@ then `check_no_emoji.py`, both must exit 0, prefix one render gate with DS_REQUI
 production adds full GUIDE gates + critique. Disposition every finding; fix or state the reason.
 
 ## Plan Mode (default-on)
-Active for every new session and every request, including trivial requests. The gate is instruction-only; `@gotgenes/pi-permission-system` remains the hard wall for protected operations.
+Active for every new session and every request, including trivial requests. The gate is instruction-only; `@pify/yolo` blocks catastrophic commands and asks before secret-material access. Modes are session-scoped: fresh sessions start in Approve; use `/yolo auto` only when intended. Auto can run ordinary destructive commands without prompting. Checkpoint recovery covers tracked Git state only, not untracked/ignored files or external side effects; mutable delegation tool calls may run without Yolo hooks.
 
 ### Phase 1 — Read-Only Exploration (ENFORCED)
 Until the final spec is approved, perform only non-mutating actions: read, grep, find, ls, `codegraph_explore`, web fetches, and observational bash commands (`ls`, `git status`, `git diff`, etc.). Do not edit/write/create files, install packages, mutate git, or post to networks. The gate applies through the spec step. Draft-plan Refine reopens exploration.

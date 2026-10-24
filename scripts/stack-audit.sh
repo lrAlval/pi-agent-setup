@@ -76,7 +76,7 @@ echo "|---|---|---|"
 echo "| todo-eta | task tracking and ETA | keep |"
 echo "| herdr-agent-state | agent state | keep |"
 echo "| orca-agent-status | agent status | keep |"
-echo "| pi-permission-system | permission guard | keep |"
+echo "| @pify/yolo | command safety and secret guard | keep |"
 echo "| pi-rtk-optimizer | tool-output optimization | keep |"
 } > "$OUT"
 if [ "$BUDGET_FAIL" = 1 ]; then echo "BUDGET-FAIL: line budget exceeded, see $OUT"; exit 1; fi
