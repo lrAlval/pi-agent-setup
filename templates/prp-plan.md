@@ -27,4 +27,4 @@ implementation never re-researches.
 
 - Max 40 non-blank lines. Pointers over prose.
 - Anything missing -> mark UNKNOWN, never silently re-research.
-- Render the resulting plan per the visual routing table in AGENTS.md.
+- Render the resulting plan per the Plan Mode render rules in `config/AGENTS.md` (rich Markdown: tables, labeled blockquotes, and fenced code where useful).
