@@ -80,34 +80,40 @@ apply_transforms() { # $1=tmpfile $2=dest-rel
   done
 }
 
-vendor_file() { # $1=src-abs $2=dest-rel $3=reason
+repo_rel_for_live() { # Flat live config files live under config/ in this repo.
+  case "$1" in */*) printf '%s' "$1" ;; *) printf 'config/%s' "$1" ;; esac
+}
+
+vendor_file() { # $1=src-abs $2=live-rel $3=reason
   local src="$1" drel="$2" reason="$3"
-  local dest="$ROOT/$drel"
+  local repo_rel dest
+  repo_rel="$(repo_rel_for_live "$drel")"
+  dest="$ROOT/$repo_rel"
   local tmp
   tmp="$(mktemp)"
   cp "$src" "$tmp"
   apply_transforms "$tmp" "$drel"
   if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then
     rm -f "$tmp"
-    [ "$JSON" = 1 ] || skip "$drel identical"
+    [ "$JSON" = 1 ] || skip "$repo_rel identical"
     record "skip" "$drel" "identical"
     return 0
   fi
   if [ -f "$dest" ] && [ "$dest" -nt "$src" ]; then
     rm -f "$tmp"
     if [ "$APPLY" = 0 ] || [ "$CHECK" = 1 ]; then
-      [ "$JSON" = 1 ] || log "WOULD-SYNC-NEWER $drel (repo-newer, skipping)"
+      [ "$JSON" = 1 ] || log "WOULD-SYNC-NEWER $repo_rel (repo-newer, skipping)"
       record "repo-newer" "$drel" "repo-newer-dry-run"
       return 0
     fi
-    warn "REPO-NEWER $drel skipped (dest newer than src)"
+    warn "REPO-NEWER $repo_rel skipped (dest newer than src)"
     record "repo-newer" "$drel" "repo-newer"
     return 0
   fi
   if [ "$APPLY" = 0 ] || [ "$CHECK" = 1 ]; then
     rm -f "$tmp"
     CHANGED=$((CHANGED+1))
-    [ "$JSON" = 1 ] || log "WOULD vendor $drel ($reason)"
+    [ "$JSON" = 1 ] || log "WOULD vendor $repo_rel ($reason)"
     record "vendor" "$drel" "$reason-dry-run"
     return 0
   fi
@@ -116,7 +122,7 @@ vendor_file() { # $1=src-abs $2=dest-rel $3=reason
   mv "$dest.tmp.$$" "$dest"
   rm -f "$tmp"
   CHANGED=$((CHANGED+1))
-  [ "$JSON" = 1 ] || ok "vendored $drel"
+  [ "$JSON" = 1 ] || ok "vendored $repo_rel"
   record "vendor" "$drel" "$reason"
 }
 
@@ -291,7 +297,10 @@ while IFS= read -r line; do
   case "$path" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|patches/*) ;;
     *) continue ;;
   esac
-  live_rel="$path"
+  case "$path" in
+    config/*) live_rel="${path#config/}" ;;
+    *) live_rel="$path" ;;
+  esac
   if [ ! -e "$LIVE_DIR/$live_rel" ]; then
     [ "$JSON" = 1 ] || log "REVIEW-DELETE $path (absent in live, not deleting)"
     record "review-delete" "$path" "absent-live"
