@@ -25,12 +25,29 @@ export function calibratedBudgetFor(estimateMin: number, observations: Observati
   return Math.max(1, estimateMin * computeCorrection(observations));
 }
 
-export function forecast(state: TaskState): Forecast {
+export function projectTotalMin(task: Task, observations: Observation[]): number {
+  if (observations.length === 0) return Math.max(0, task.budgetMin);
+  return Math.max(0, task.estimateMin * computeCorrection(observations));
+}
+
+export function projectRemaining(task: Task, observations: Observation[]): number {
+  return Math.max(0, projectTotalMin(task, observations) - task.measuredMs / 60_000);
+}
+
+export function projectFraction(state: TaskState, observations: Observation[]): number {
+  const open = state.tasks.filter((task) => task.status === "pending" || task.status === "in_progress");
+  const budget = open.reduce((sum, task) => sum + projectTotalMin(task, observations), 0);
+  if (budget <= 0) return 0;
+  const consumed = open.reduce((sum, task) => sum + Math.min(projectTotalMin(task, observations), task.measuredMs / 60_000), 0);
+  return Math.min(1, Math.max(0, consumed / budget));
+}
+
+export function forecast(state: TaskState, observations: Observation[] = []): Forecast {
   const perTask = state.tasks
     .filter((task) => task.status === "pending" || task.status === "in_progress")
     .map((task) => {
       const elapsedMin = task.measuredMs / 60_000;
-      const remainingMin = Math.max(0, task.budgetMin - elapsedMin);
+      const remainingMin = projectRemaining(task, observations);
       return { taskId: task.id, budgetMin: task.budgetMin, remainingMin, exceeded: elapsedMin > task.budgetMin };
     });
   const totalRemainingMin = perTask.reduce((sum, item) => sum + item.remainingMin, 0);
