@@ -6,7 +6,6 @@ import { calibratedBudgetFor, forecast, projectFraction, projectRemaining } from
 import type { Observation } from "./eta.ts";
 import { loadRecentObservations, publishObservation } from "./history.ts";
 import { renderWidgetLines, truncateToWidth } from "./widget.ts";
-import type { WidgetTheme } from "./widget.ts";
 
 const TIMING_ENTRY = "todo-eta-timing";
 const WIDGET_KEY = "todo-eta";
@@ -40,8 +39,8 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
   };
   const updateWidget = (ctx: ExtensionContext): void => {
     if (!ctx.hasUI) return;
-    ctx.ui.setWidget(WIDGET_KEY, (_tui, theme) => ({
-      render: (width) => renderWidgetLines({ state, collapsed, paused: !timing.runActive, width, observations, theme: theme as unknown as WidgetTheme }),
+    ctx.ui.setWidget(WIDGET_KEY, () => ({
+      render: (width) => renderWidgetLines({ state, collapsed, sessionMs: timing.sessionMs, width }),
       invalidate: () => {},
     }));
   };
@@ -105,6 +104,7 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
     persistTiming(snapshot);
   };
   pi.on("agent_start", async (_event, ctx) => { checkpointTiming(clock.agentStart()); updateWidget(ctx); });
+  pi.on("turn_start", async (_event, ctx) => { checkpointTiming(clock.turnStart()); updateWidget(ctx); });
   pi.on("agent_end", async (_event, ctx) => { checkpointTiming(clock.agentEnd()); updateWidget(ctx); });
   pi.on("turn_end", async (_event, ctx) => { checkpointTiming(clock.turnEnd()); updateWidget(ctx); });
   pi.on("session_shutdown", async (_event, ctx) => {
@@ -119,7 +119,7 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
     checkpointTimer = setInterval(() => {
       checkpointTiming(clock.snapshot());
       updateWidget(ctx);
-    }, 30_000);
+    }, 2_000);
     checkpointTimer.unref?.();
     await refreshObservations();
     const restored = reconstructFromSession(ctx);
@@ -142,7 +142,7 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
         if (!ctx.hasUI) return;
         const lines = [
           "Todo ETA",
-          ...renderWidgetLines({ state, paused: !timing.runActive, width: 72, observations }),
+          ...renderWidgetLines({ state, sessionMs: timing.sessionMs, width: 72 }),
           `Remaining: ${forecast(state, observations).totalRemainingMin.toFixed(1)} min`,
           "Press Escape to close",
         ];
