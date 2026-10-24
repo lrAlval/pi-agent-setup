@@ -30,9 +30,14 @@ export function renderWidgetLines(input: WidgetInput): string[] {
   const ready = state.tasks.filter((task) => task.status === "pending" && !task.blockerReason && task.deps.every((id) => state.tasks.find((dep) => dep.id === id)?.status === "completed"));
   const blocked = state.tasks.filter((task) => task.status === "pending" && !ready.includes(task));
   const done = state.tasks.filter((task) => task.status === "completed").length;
+  const progressTasks = state.tasks.filter((task) => task.status !== "cancelled");
+  const activeProgress = active && Number.isFinite(active.estimateMin) && active.estimateMin > 0
+    ? Math.min(1, Math.max(0, active.measuredMs / (active.estimateMin * 60_000)))
+    : 0;
+  const progress = done + activeProgress;
   const view = (task: Task, icon: string): string => truncateToWidth(`${icon} ${task.title}`, width);
 
-  const header = `${renderBar(done, state.tasks.length, Math.min(16, Math.max(2, width / 2)))} ${formatTimer(input.sessionMs ?? 0)} · ${done}/${state.tasks.length} tasks`;
+  const header = `${renderBar(progress, progressTasks.length, Math.min(16, Math.max(2, width / 2)))} · ${done}/${state.tasks.length} tasks · ${formatTimer(input.sessionMs ?? 0)}`;
   if (input.collapsed) return [truncateToWidth(header, width)];
   const result: string[] = [truncateToWidth(header, width)];
   if (active) result.push(view(active, "▶"));

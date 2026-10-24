@@ -17,6 +17,44 @@ test("session reconstruction reads active branch only", () => {
   assert.deepEqual(restored.timing, timing);
 });
 
+test("persistent widget exists only during open work while command remains available", async () => {
+  const listeners = new Map<string, (event: unknown, ctx: ExtensionContext) => Promise<void> | void>();
+  const commands = new Map<string, { handler: (args: string, ctx: ExtensionContext) => Promise<void> | void }>();
+  const tools: Array<{ name: string; execute: (...args: unknown[]) => Promise<unknown> }> = [];
+  const widgetCalls: Array<[string, unknown]> = [];
+  const notifications: string[] = [];
+  const api = {
+    registerTool: (tool: typeof tools[number]) => tools.push(tool),
+    registerCommand: (name: string, command: { handler: (args: string, ctx: ExtensionContext) => Promise<void> | void }) => commands.set(name, command),
+    on: (name: string, handler: (event: unknown, ctx: ExtensionContext) => Promise<void> | void) => listeners.set(name, handler),
+    appendEntry: () => "entry",
+  } as unknown as ExtensionAPI;
+  todoEtaExtension(api);
+  const ctx = {
+    hasUI: true,
+    mode: "inline",
+    sessionManager: { getBranch: () => [] },
+    ui: {
+      setWidget: (key: string, widget: unknown) => widgetCalls.push([key, widget]),
+      notify: (message: string) => notifications.push(message),
+    },
+  } as unknown as ExtensionContext;
+
+  await listeners.get("session_start")?.({}, ctx);
+  assert.deepEqual(widgetCalls.at(-1), ["todo-eta", undefined]);
+  const tool = tools[0];
+  await tool.execute("call", { action: "apply", ops: [{ op: "create", ref: "work", title: "Work", estimateMin: 5, start: true }] }, undefined, undefined, ctx);
+  assert.equal(widgetCalls.at(-1)?.[0], "todo-eta");
+  assert.notEqual(widgetCalls.at(-1)?.[1], undefined);
+  const id = widgetCalls.length;
+  await tool.execute("call", { action: "apply", ops: [{ op: "complete", ref: 1 }] }, undefined, undefined, ctx);
+  assert.deepEqual(widgetCalls.at(-1), ["todo-eta", undefined]);
+  assert.ok(widgetCalls.length > id);
+
+  await commands.get("todo-eta")?.handler("", ctx);
+  assert.match(notifications.at(-1) ?? "", /1\/1 tasks/);
+});
+
 test("registers one todo_eta tool and returns atomic failures as errors", async () => {
   const tools: Array<{ name: string }> = [];
   const api = {
