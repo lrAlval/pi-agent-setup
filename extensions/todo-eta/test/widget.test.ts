@@ -1,77 +1,62 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { initialTaskState, applyBatch } from "../src/tasks.ts";
-import type { Observation } from "../src/eta.ts";
-import { renderAggregateBar, renderBarCells, renderWidgetLines, truncateToWidth } from "../src/widget.ts";
+import { initialTaskState, applyBatch, type TaskState } from "../src/tasks.ts";
+import { renderWidgetLines, renderBar, formatTimer, truncateToWidth } from "../src/widget.ts";
 
-const sampleState = () => {
-  let state = applyBatch(initialTaskState(), [
-    { op: "create", ref: "a", title: "Active task", estimateMin: 5, start: true },
-    { op: "create", ref: "b", title: "Ready task", estimateMin: 4 },
-    { op: "create", ref: "c", title: "Blocked task", estimateMin: 3, deps: ["a"] },
-  ]).state;
-  state.tasks[1].blockerReason = "waiting";
-  return state;
-};
-
-const sampleObs: Observation[] = [{ id: "x", ts: 0, estimateMs: 60_000, actualMs: 30_000 }];
-const themeStub = { fg: (_color: unknown, text: string) => `m(${text})`, bold: (text: string) => `b(${text})` };
-
-test("widget renders active, ready, blocked and stays within seven lines", () => {
-  const lines = renderWidgetLines({ state: sampleState(), paused: true });
-  assert.ok(lines[0].startsWith("▶"));
-  assert.ok(lines.some((line) => line.startsWith("↳")));
-  assert.ok(lines.length <= 7);
-});
-
-test("expanded widget ends with aggregate bar and percent label", () => {
-  const lines = renderWidgetLines({ state: sampleState(), observations: sampleObs, paused: true });
-  const bar = lines.at(-1) ?? "";
-  assert.ok(/[▰▱]/.test(bar));
-  assert.match(bar, /%\s*·\s*[\d.]+m left/);
-});
-
-test("bar cells clamp fraction and honor minimum width", () => {
-  assert.equal(renderBarCells(0.5, 10), "▰▰▰▰▰▱▱▱▱▱");
-  assert.equal(renderBarCells(1, 0), "▰▰");
-  assert.ok(renderBarCells(Number.NaN, 10).startsWith("▱"));
-});
-
-test("aggregate bar render supports bare cells and label", () => {
-  assert.equal(renderAggregateBar(0, 4, ""), "▱▱▱▱");
-  assert.equal(renderAggregateBar(1, 2, "done"), "▰▰ done");
-});
-
-test("all-completed state shows Done bar", () => {
+function sampleState(): TaskState {
   const state = applyBatch(initialTaskState(), [
-    { op: "create", ref: "a", title: "A", estimateMin: 5, start: true },
-    { op: "complete", ref: "a" },
-  ]).state;
-  const lines = renderWidgetLines({ state });
-  assert.equal(lines.length, 1);
-  assert.match(lines[0] ?? "", /Done · 0m left/);
-});
-
-test("collapsed widget is a one-liner with mini bar", () => {
-  const lines = renderWidgetLines({ state: sampleState(), collapsed: true });
-  assert.equal(lines.length, 1);
-  assert.ok(lines[0]?.startsWith("▶ Active task"));
-  assert.ok(/[▰▱]/.test(lines[0] ?? ""));
-  assert.match(lines[0] ?? "", /m$/);
-});
-
-test("theme stub styles active bold and rest muted", () => {
-  let state = applyBatch(initialTaskState(), [
     { op: "create", ref: "a", title: "Active task", estimateMin: 5, start: true },
     { op: "create", ref: "b", title: "Ready task", estimateMin: 4 },
     { op: "create", ref: "c", title: "Blocked task", estimateMin: 3, deps: ["a"] },
+    { op: "create", ref: "d", title: "Done task", estimateMin: 2 },
+    { op: "create", ref: "e", title: "Done task two", estimateMin: 2 },
   ]).state;
-  const lines = renderWidgetLines({ state, observations: sampleObs, paused: true, theme: themeStub });
-  assert.ok(lines[0]?.startsWith("b(▶ Active task"));
-  assert.ok(lines.some((line) => line.startsWith("m(○ Ready task")));
-  assert.ok(lines.some((line) => line.startsWith("m(↳ Blocked task")));
-  assert.ok(!lines.at(-1)?.startsWith("m(")); // bar line stays plain
+  state.tasks[3].status = "completed";
+  state.tasks[4].status = "completed";
+  return state;
+}
+
+test("widget renders header bar, timer, counts, active, ready, blocked within six lines", () => {
+  const lines = renderWidgetLines({ state: sampleState(), sessionMs: 90_000 });
+  assert.ok(lines[0].includes("█"));
+  assert.ok(lines[0].includes("1:30"));
+  assert.ok(lines[0].includes("2/5 tasks"));
+  assert.ok(lines.some((line) => line.startsWith("▶")));
+  assert.ok(lines.some((line) => line.startsWith("○")));
+  assert.ok(lines.some((line) => line.startsWith("↳")));
+  assert.ok(lines.length <= 6);
+});
+
+test("widget renders nothing when there are no tasks, expanded and collapsed", () => {
+  assert.deepEqual(renderWidgetLines({ state: initialTaskState() }), []);
+  assert.deepEqual(renderWidgetLines({ state: initialTaskState(), collapsed: true }), []);
+});
+
+test("widget has no paused, empty, estimate, or revision noise", () => {
+  const rendered = renderWidgetLines({ state: sampleState(), sessionMs: 5_000 }).join("\n");
+  for (const noise of ["Paused", "no tasks", "needs revision", "Estimate exceeded", "agent not running"]) assert.ok(!rendered.includes(noise));
+});
+
+test("collapsed mode is single line with bar, timer and count", () => {
+  const lines = renderWidgetLines({ state: sampleState(), collapsed: true, sessionMs: 61_000 });
+  assert.equal(lines.length, 1);
+  assert.ok(lines[0].includes("█"));
+  assert.ok(lines[0].includes("1:01"));
+  assert.ok(lines[0].includes("2/5 tasks"));
+});
+
+test("bar is proportional to done/total", () => {
+  assert.equal(stripTerminalSequences(renderBar(2, 5, 10)), "████░░░░░░");
+  assert.equal(stripTerminalSequences(renderBar(0, 3, 10)), "░░░░░░░░░░");
+  assert.equal(stripTerminalSequences(renderBar(3, 3, 10)), "██████████");
+  assert.equal(stripTerminalSequences(renderBar(0, 0, 10)).length, 10);
+});
+
+test("timer formats m:ss under an hour and h:mm:ss above", () => {
+  assert.equal(formatTimer(0), "0:00");
+  assert.equal(formatTimer(5_400), "0:05");
+  assert.equal(formatTimer(3_723_000), "1:02:03");
 });
 
 test("widget truncates by terminal width", () => {
