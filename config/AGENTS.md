@@ -66,36 +66,78 @@ then `check_no_emoji.py`, both must exit 0, prefix one render gate with DS_REQUI
 production adds full GUIDE gates + critique. Disposition every finding; fix or state the reason.
 
 ## Plan Mode (default-on)
-Active for every new session and every request, including trivial requests. The gate is instruction-only; `@pify/yolo` blocks catastrophic commands and asks before secret-material access. Modes are session-scoped: fresh sessions start in Approve; use `/yolo auto` only when intended. Auto can run ordinary destructive commands without prompting. Checkpoint recovery covers tracked Git state only, not untracked/ignored files or external side effects; mutable delegation tool calls may run without Yolo hooks.
+MUST follow this protocol for every request, including trivial requests; no trivial-request exemption. This is an instruction gate, not a tool sandbox. `@pify/yolo` remains the hard wall for catastrophic operations and secret-material access. Fresh sessions start in Approve; use `/yolo auto` only when intended. Auto can run ordinary destructive commands without prompting. Checkpoint recovery covers tracked Git state only, not untracked/ignored files or external side effects; mutable delegation tool calls may run without Yolo hooks.
 
-### Phase 1 — Read-Only Exploration (ENFORCED)
-Until the final spec is approved, perform only non-mutating actions: read, grep, find, ls, `codegraph_explore`, web fetches, and observational bash commands (`ls`, `git status`, `git diff`, etc.). Do not edit/write/create files, install packages, mutate git, or post to networks. The gate applies through the spec step. Draft-plan Refine reopens exploration.
+### Stop-gates (mandatory)
+At each phase, MUST end the turn at its stated output. NEVER skip ahead, combine phases, or treat implied consent as approval. Continue only after the user responds to the phase's required card/question. Refine reopens read-only exploration and requires the revised artifact plus a new card. Reject stops the request. Scope change after approval stops implementation and returns to planning for new approval.
+
+### Phase 1 — Read-only exploration
+Before final-spec approval, MUST use only non-mutating inspection: read, grep, find, ls, `codegraph_explore`, web fetch, and observational shell commands such as `git status`/`git diff`. MUST NOT edit, write, create files/artifacts, install packages, mutate Git, post to networks, or persist wiki content. Draft Refine reopens this phase. CodeGraph MUST run before plans/edits; if unindexed, fall back immediately to read/grep/ast_grep.
+**Stop:** finish exploration only when ready to grill; no implementation or file mutations.
 
 ### Phase 2 — Grill
-For every gated request, run grilling interview rounds using a design tree. Ask about unresolved choices and dependencies until every branch is clear; recommend a choice first when appropriate. No trivial-request exemption.
+MUST use the `grilling` skill and a decision tree. Each round asks the WHOLE available frontier; dependent questions wait for their prerequisite answers. Continue until frontier is empty: every branch asked, decided, or explicitly confirmed safely inferable. MUST ask at least one round, even for obvious requests. Recommend a choice; facts are agent research, not user questions.
+**Stop:** when the frontier is empty, state shared understanding and ask user to confirm it. Do not plan or act until confirmed.
 
 ### Phase 3 — Research
-Investigate docs, code, and external sources as needed to make plan decision-complete and prevent drift.
+MUST investigate relevant code, contracts, docs, and constraints needed to make the plan decision-complete. Cite concrete evidence for behavior claims; report unknowns, conflicts, and risks rather than silently assuming.
+**Stop:** research ends when evidence supports a complete draft; no mutations.
 
-### Phase 4 — Draft numbered plan and approval card
-Use this exact chat template:
+### Phase 4 — Draft plan + approval
+Render draft and final plans as polished rich Markdown in chat: clear headings, Markdown tables, labeled blockquotes, and fenced code where useful. Let active theme provide color highlighting. No ANSI color codes, HTML artifact, or preview package required. Keep format readable at terminal width.
 
-PLAN: <one-line objective>
-1. <what changes> | files: <paths> | verify: <check>
-2. <what changes> | files: <paths> | verify: <check>
-ACCEPTANCE: <how the whole request is proven done>
-RISKS: <known limits / untested behavior, if any>
+Use this template (one table row per step):
 
-Every numbered step must state changes, affected files, and verification. Then use `ask_user_question` approval card with Approve / Refine / Reject. Refine reopens read-only exploration and requires a revised plan and new card. Reject stops; do not create spec or begin work.
+> **PLAN:** <one-line objective>
+
+| # | Change | Files | Verify | Decision resolved |
+|---|---|---|---|---|
+| 1 | <change> | <exact paths> | <observable check> | <grill decision> |
+
+> **ACCEPTANCE:** <how the whole request is proven done>
+>
+> **RISKS:** <known limits / untested behavior, or None>
+
+**Spec skeleton (required in every draft):**
+1. Goal & scope — <behavior and in/out scope>
+2. File map — <paths and purpose>
+3. Symbol contract spec — <interfaces and data flow>
+4. Edge cases & failure modes — <boundaries and recovery>
+5. Test plan — <acceptance checks and exact commands>
+6. Assumptions & defaults — <explicit defaults and implementation model>
+
+Every step MUST name a concrete change, exact files, a verifiable check, and the grill decision it resolves; order steps dependency-first. Draft MUST include the six-section spec skeleton so final spec adds detail, not scope. Unresolved facts go in RISKS, never disappear. Then use `ask_user_question` with Approve / Refine / Reject.
+**Stop:** end turn after showing draft approval card. Refine requires revised plan + new card; Reject stops and no spec is created.
 
 ### Phase 5 — Complete spec (still read-only)
-After draft approval, invoke `plan-implementation` to expand the approved plan into its complete spec, including all six required sections and self-audit. Do not write the spec to files; keep it in chat. No mutations during this step.
+After draft approval, MUST produce the complete spec in chat, expanding only approved scope. Use `plan-implementation` and this fixed template every time; render with the same rich Markdown rules. No writes or wiki persistence in this phase. This instruction overrides the skill's persistence step while Plan Mode is active.
 
-### Phase 6 — Final spec gate
-Use `ask_user_question` with Approve / Refine / Reject and ask: “Is the final spec approved?” Approve must also establish which implementation model to use. Only then may implementation begin. Refine returns to read-only exploration and requires a revised spec and new final card. Reject stops. During implementation, scope drift means stop, return to planning, and re-arm approval.
+```markdown
+## 1. Goal & scope
+Behavior changes; in-scope/out-of-scope; public API/interface/type changes.
+## 2. File map
+Table of every created/modified/deleted file with exact path and purpose.
+## 3. Symbol contract spec
+Every changed/new symbol: exact name/signature, params, returns, errors; data flow/call path; dependency name/version/rationale. Use fenced code for exact signatures/contracts.
+## 4. Edge cases & failure modes
+Boundary inputs, errors, concurrency/migrations, compatibility, and recovery behavior.
+## 5. Test plan
+For each acceptance criterion: proving test + exact command; highest meaningful test level first (E2E/integration before unit); TDD seams; explicit NOT-testable items and reasons.
+## 6. Assumptions & defaults
+Every choice not supplied by user, explicitly named. Include Implementation model and rationale; never silently choose a model.
+## Self-audit
+Check acceptance-to-test mapping, seam-level tests, pinned dependencies, exact interfaces, test-level ladder, scope fidelity, and weakest section. Fix gaps before presenting.
+```
+
+Spec MUST include explicit out-of-scope list, executable acceptance criteria, exact file paths/signatures, and the self-audit naming the weakest section. MUST be strictly more detailed than draft, never introduce new scope. Include model selection in final card and spec; user may choose with model picker or name provider/model. No implementation until model is explicitly established.
+**Stop:** end turn after presenting complete spec and final `ask_user_question` card: “Is the final spec approved?” with Approve / Refine / Reject AND an implementation-model choice. Refine returns to Phase 1; Reject stops.
+
+### Phase 6 — Approved implementation
+Only after final spec AND implementation model are approved: persist approved spec to wiki (`implementation-plan`) as first implementation action; register every numbered step with `todo_eta`, start/complete tasks as work proceeds, and verify each step. Follow repo worktree/PR rules. On scope drift, stop and re-arm approval.
+**Stop:** complete only when acceptance checks pass and report actual evidence and remaining limits.
 
 ### Waive
-Phrases such as “just do it” or “skip the plan” waive the gate for that request only. A waiver does not persist to later requests.
+“Just do it” / “skip the plan” waives this gate for that request only; it does not persist. A waiver does not authorize unsafe actions or override Yolo.
 
 ## Lifecycle
 Ideas run `brainstorm` -> (`spike` if gaps remain) -> `plan-implementation`, routed by `impl-lifecycle`. Each stage ends with approval card; nothing proceeds unapproved. Plans carry all 6 `plan-implementation` sections; self-audit before presenting.
