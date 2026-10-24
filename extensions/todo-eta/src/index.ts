@@ -39,6 +39,11 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
   };
   const updateWidget = (ctx: ExtensionContext): void => {
     if (!ctx.hasUI) return;
+    const hasOpenTasks = state.tasks.some((task) => task.status === "pending" || task.status === "in_progress");
+    if (!hasOpenTasks) {
+      ctx.ui.setWidget(WIDGET_KEY, undefined);
+      return;
+    }
     ctx.ui.setWidget(WIDGET_KEY, () => ({
       render: (width) => renderWidgetLines({ state, collapsed, sessionMs: timing.sessionMs, width }),
       invalidate: () => {},
