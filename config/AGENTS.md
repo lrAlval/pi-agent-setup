@@ -142,6 +142,10 @@ Only after final spec AND implementation model are approved: persist approved sp
 ## Lifecycle
 Ideas run `brainstorm` -> (`spike` if gaps remain) -> `plan-implementation`, routed by `impl-lifecycle`. Each stage ends with approval card; nothing proceeds unapproved. Plans carry all 6 `plan-implementation` sections; self-audit before presenting.
 
+## PR discipline
+- Every PR body follows the `pr` skill template: Summary, Evidence, Merge Danger. No empty-body PRs.
+- Releases are manual. Release notes come from PR titles (squash-merge commits).
+
 ## Codemode batching
 3+ independent read-only calls → one `codemode` script (`Promise.allSettled`), filter/truncate inside, return only needed facts. Never raw dumps. `code` is raw JS only (see `codemode-source-discipline`).
 
