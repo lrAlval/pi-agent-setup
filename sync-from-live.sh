@@ -294,7 +294,7 @@ done
 while IFS= read -r line; do
   case "$line" in '#'*) continue ;; '') continue ;; esac
   path="$(printf '%s' "$line" | awk '{print $2}')"
-  case "$path" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|patches/*) ;;
+  case "$path" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*) ;;
     *) continue ;;
   esac
   case "$path" in
@@ -310,7 +310,7 @@ done < "$MANIFEST"
 # --- Phase 4: regen manifest + lint -------------------------------------------
 if [ "$APPLY" = 1 ] && [ "$CHANGED" -gt 0 ]; then
   head -n 6 "$MANIFEST" > "$TMPDIR/manifest.new"
-  (cd "$ROOT" && find extensions agents skills themes config scripts templates patches memory -type f | grep -v 'skills/xias-symlinks.txt' | grep -v '\.pi-target' | sort | xargs sha256sum | sed 's| \./|  |') >> "$TMPDIR/manifest.new"
+  (cd "$ROOT" && find extensions agents skills themes config scripts templates memory -type f | grep -v 'skills/xias-symlinks.txt' | grep -v '\.pi-target' | sort | xargs sha256sum | sed 's| \./|  |') >> "$TMPDIR/manifest.new"
   mv "$TMPDIR/manifest.new" "$MANIFEST"
   bash -n "$ROOT/install.sh" || die "install.sh lint failed after regen"
   [ "$JSON" = 1 ] || ok "manifest.lock regenerated"
