@@ -71,6 +71,20 @@ MUST follow this protocol for every request, including trivial requests; no triv
 ### Stop-gates (mandatory)
 At each phase, MUST end the turn at its stated output. NEVER skip ahead, combine phases, or treat implied consent as approval. Continue only after the user responds to the phase's required card/question. Refine reopens read-only exploration and requires the revised artifact plus a new card. Reject stops the request. Scope change after approval stops implementation and returns to planning for new approval.
 
+**Full-plan visibility (every Plan Mode turn):** Before asking any planning question, show the complete current plan/proposal, not a summary or delta. If it is not decision-ready, show its full current state plus unresolved decisions. After any refinement, show the complete replacement plan before the approval card. If clarification leaves the plan unchanged, show the complete unchanged plan before ending the turn.
+
+**Phase routing:** Use only relevant skills/tools; do not load every router by default.
+
+| Phase | Route | Required output |
+|---|---|---|
+| 1. Exploration | `codegraph_explore` before plans/edits; `ccc search` only when semantic search is useful. Never run `ccc index` during this read-only phase. | Read-only findings; cite evidence for behavior claims. |
+| 2. Grill | `grilling` skill and host-native question tool (`plan_mode_question` in Plan Mode when available). | Ask the available decision frontier, then wait. |
+| 3. Research | `research` for sourced investigations; `find-docs` for current external API facts; `ccc` when semantic code search helps. | Decision-ready evidence; state unknowns and risks. |
+| 4-5. Draft and complete spec | `plan-implementation`. | Complete plan/spec in chat, then required approval card. |
+| 6. Approved implementation | `todo_eta` for numbered steps; `wiki_ensure_page` for approved plan; `treehouse-worktrees` for repo mutations. Select implementation skills by task; use `implement` only when a backlog slice exists. | Verify each step; stop and re-plan on scope drift. |
+
+Plan Mode is standalone. Do not route its phases through the separate `brainstorm` -> `spike` -> `plan-implementation` idea lifecycle; use `impl-lifecycle` only for that lifecycle.
+
 ### Phase 1 — Read-only exploration
 Before final-spec approval, MUST use only non-mutating inspection: read, grep, find, ls, `codegraph_explore`, web fetch, and observational shell commands such as `git status`/`git diff`. MUST NOT edit, write, create files/artifacts, install packages, mutate Git, post to networks, or persist wiki content. Draft Refine reopens this phase. CodeGraph MUST run before plans/edits; if unindexed, fall back immediately to read/grep/ast_grep.
 **Stop:** finish exploration only when ready to grill; no implementation or file mutations.
@@ -129,8 +143,8 @@ Every choice not supplied by user, explicitly named. Include Implementation mode
 Check acceptance-to-test mapping, seam-level tests, pinned dependencies, exact interfaces, test-level ladder, scope fidelity, and weakest section. Fix gaps before presenting.
 ```
 
-Spec MUST include explicit out-of-scope list, executable acceptance criteria, exact file paths/signatures, and the self-audit naming the weakest section. MUST be strictly more detailed than draft, never introduce new scope. Include model selection in final card and spec; user may choose with model picker or name provider/model. No implementation until model is explicitly established.
-**Stop:** end turn after presenting complete spec and final `ask_user_question` card: “Is the final spec approved?” with Approve / Refine / Reject AND an implementation-model choice. Refine returns to Phase 1; Reject stops.
+Spec MUST include explicit out-of-scope list, executable acceptance criteria, exact file paths/signatures, and the self-audit naming the weakest section. MUST be strictly more detailed than draft, never introduce new scope. The implementation model must be selected with the `/model` picker before final spec approval. Do not offer a curated shortlist or a limited set of suggested models. Verify the selected provider/model from session state; no implementation until both model and spec are approved.
+**Stop:** end turn after presenting complete spec and final approval card with Approve / Refine / Reject. Tell the user to select the implementation model using `/model` before approving; verify the selected provider/model. Refine returns to Phase 1; Reject stops.
 
 ### Phase 6 — Approved implementation
 Only after final spec AND implementation model are approved: persist approved spec to wiki (`implementation-plan`) as first implementation action; register every numbered step with `todo_eta`, start/complete tasks as work proceeds, and verify each step. Follow repo worktree/PR rules. On scope drift, stop and re-arm approval.

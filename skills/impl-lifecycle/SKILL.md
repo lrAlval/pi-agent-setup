@@ -8,22 +8,11 @@ description: "Route the enforced idea-to-plan lifecycle: brainstorm, then spike 
 Enforced order: `brainstorm` → (`spike`)? → `plan-implementation` →
 approved implementation. Wiki persistence + approval card at every stage.
 
-## Continuous-run rule (pi-plan-mode fork)
+## Lifecycle boundary
 
-The `better-plan-mode` fork drives the handoff automatically, so the lifecycle
-runs without an extra turn between stages:
-
-- The brainstorm approval card is the ONE gate. On approve, do NOT end the turn
-  to ask permission again; immediately continue with `spike` (when uncertainty
-  remains) or `plan-implementation` in the same turn.
-- In `/plan` mode the approved plan-end is `plan_mode_complete`; with
-  `autoImplement: "fresh"` (live at `~/.pi/agent/pi-plan-mode.json`) the
-  extension then starts the linked fresh implementation session itself, using
-  the resolved implementation runtime (first available
-  `implementationModelPresets` entry, here `muse`/medium). Never start a second
-  implementation yourself after `plan_mode_complete`; the extension owns it.
-- Without interactive UI (`pi -p`), the automatic handoff does not run: the plan
-  stays ready and a notification reports it.
+This skill routes only the separate `brainstorm` → (`spike`)? →
+`plan-implementation` idea lifecycle. Plan Mode has its own phases and stop-gates,
+defined in `AGENTS.md`; do not apply this skill's handoff rules to `/plan`.
 
 ## Routing rule
 
