@@ -2,7 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "typebox";
 import { applyBatch, initialTaskState, type BatchOp, type TaskDetails, type TaskState } from "./tasks.ts";
 import { ActiveClock, type TimingSnapshot } from "./timing.ts";
-import { calibratedBudgetFor, forecast, projectFraction, projectRemaining } from "./eta.ts";
+import { abortObservationFor, calibratedBudgetFor, forecast, projectFraction, projectRemaining } from "./eta.ts";
 import type { Observation } from "./eta.ts";
 import { loadRecentObservations, publishObservation } from "./history.ts";
 import { renderWidgetLines, truncateToWidth } from "./widget.ts";
@@ -58,7 +58,7 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "todo_eta",
     label: "Todo ETA",
-    description: "List and atomically update guarded tasks with dependencies, estimates, and progress timing.",
+    description: "List and atomically update guarded tasks with dependencies, estimates, and progress timing. For estimateMin give your 50%-confidence duration — actual execution time is measured and estimates are auto-calibrated; padded estimates are corrected down.",
     executionMode: "sequential",
     parameters: Type.Object({
       action: Type.Union([Type.Literal("list"), Type.Literal("apply")]),
@@ -112,10 +112,18 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
   pi.on("turn_start", async (_event, ctx) => { checkpointTiming(clock.turnStart()); updateWidget(ctx); });
   pi.on("agent_end", async (_event, ctx) => { checkpointTiming(clock.agentEnd()); updateWidget(ctx); });
   pi.on("turn_end", async (_event, ctx) => { checkpointTiming(clock.turnEnd()); updateWidget(ctx); });
-  pi.on("session_shutdown", async (_event, ctx) => {
+  pi.on("session_shutdown", async (event, ctx) => {
     if (checkpointTimer) clearInterval(checkpointTimer);
     checkpointTimer = undefined;
     checkpointTiming(clock.sessionShutdown());
+    const observation = event.reason === "quit" ? abortObservationFor(state) : undefined;
+    if (observation) {
+      try {
+        await publishObservation(observation);
+      } catch {
+        // Shutdown must not fail because history could not be written.
+      }
+    }
     if (ctx.hasUI) ctx.ui.setWidget(WIDGET_KEY, undefined);
   });
   pi.on("session_before_fork", async (_event, ctx) => { persistTiming(clock.sessionBeforeFork()); updateWidget(ctx); });

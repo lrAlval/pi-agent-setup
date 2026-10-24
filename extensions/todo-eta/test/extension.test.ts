@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import todoEtaExtension, { reconstructFromSession } from "../src/index.ts";
 
@@ -53,6 +56,39 @@ test("persistent widget exists only during open work while command remains avail
 
   await commands.get("todo-eta")?.handler("", ctx);
   assert.match(notifications.at(-1) ?? "", /1\/1 tasks/);
+});
+
+test("publishes partial history only when session shutdown reason is quit", async () => {
+  const previousDir = process.env.PI_TODO_ETA_STATE_DIR;
+  const root = await mkdtemp(join(tmpdir(), "todo-eta-shutdown-"));
+  try {
+    for (const reason of ["quit", "new", "resume", "fork", "reload"] as const) {
+      const dir = join(root, reason);
+      process.env.PI_TODO_ETA_STATE_DIR = dir;
+      const listeners = new Map<string, (event: any, ctx: ExtensionContext) => Promise<void> | void>();
+      const tools: Array<{ execute: (...args: unknown[]) => Promise<unknown> }> = [];
+      const api = {
+        registerTool: (tool: typeof tools[number]) => tools.push(tool),
+        registerCommand: () => {},
+        on: (name: string, handler: (event: any, ctx: ExtensionContext) => Promise<void> | void) => listeners.set(name, handler),
+        appendEntry: () => "entry",
+      } as unknown as ExtensionAPI;
+      todoEtaExtension(api);
+      const ctx = { hasUI: false, sessionManager: { getBranch: () => [] } } as unknown as ExtensionContext;
+      await listeners.get("session_start")?.({}, ctx);
+      await tools[0].execute("call", { action: "apply", ops: [{ op: "create", ref: "work", title: "Work", estimateMin: 2, start: true }] }, undefined, undefined, ctx);
+      await listeners.get("agent_start")?.({}, ctx);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      if (reason === "fork") await listeners.get("session_before_fork")?.({ type: "session_before_fork", entryId: "entry", position: "before" }, ctx);
+      await listeners.get("session_shutdown")?.({ type: "session_shutdown", reason }, ctx);
+      const files = await readdir(dir).catch(() => []);
+      assert.equal(files.filter((file) => file.endsWith(".json")).length, reason === "quit" ? 1 : 0, `${reason} shutdown`);
+    }
+  } finally {
+    if (previousDir === undefined) delete process.env.PI_TODO_ETA_STATE_DIR;
+    else process.env.PI_TODO_ETA_STATE_DIR = previousDir;
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("registers one todo_eta tool and returns atomic failures as errors", async () => {
