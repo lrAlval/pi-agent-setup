@@ -2,9 +2,11 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "typebox";
 import { applyBatch, initialTaskState, type BatchOp, type TaskDetails, type TaskState } from "./tasks.ts";
 import { ActiveClock, type TimingSnapshot } from "./timing.ts";
-import { calibratedBudgetFor, forecast } from "./eta.ts";
+import { calibratedBudgetFor, forecast, projectFraction, projectRemaining } from "./eta.ts";
+import type { Observation } from "./eta.ts";
 import { loadRecentObservations, publishObservation } from "./history.ts";
 import { renderWidgetLines, truncateToWidth } from "./widget.ts";
+import type { WidgetTheme } from "./widget.ts";
 
 const TIMING_ENTRY = "todo-eta-timing";
 const WIDGET_KEY = "todo-eta";
@@ -13,8 +15,17 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
   let state: TaskState = initialTaskState();
   let timing: TimingSnapshot = { v: 1, taskId: null, measuredMs: 0, runActive: false, intervalStartMs: null, status: "empty", eligible: false };
   let collapsed = false;
+  let observations: Observation[] = [];
   let checkpointTimer: ReturnType<typeof setInterval> | undefined;
   const clock = new ActiveClock();
+
+  const refreshObservations = async (): Promise<void> => {
+    try {
+      observations = await loadRecentObservations();
+    } catch {
+      // keep last known observations on read failure
+    }
+  };
 
   const persistTiming = (snapshot: TimingSnapshot): void => {
     timing = snapshot;
@@ -29,8 +40,8 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
   };
   const updateWidget = (ctx: ExtensionContext): void => {
     if (!ctx.hasUI) return;
-    ctx.ui.setWidget(WIDGET_KEY, () => ({
-      render: (width) => renderWidgetLines({ state, collapsed, paused: !timing.runActive, width }),
+    ctx.ui.setWidget(WIDGET_KEY, (_tui, theme) => ({
+      render: (width) => renderWidgetLines({ state, collapsed, paused: !timing.runActive, width, observations, theme: theme as unknown as WidgetTheme }),
       invalidate: () => {},
     }));
   };
@@ -59,16 +70,18 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
       if (params.action === "list") {
         syncClock();
+        await refreshObservations();
         const output = details("list");
-        return { content: [{ type: "text", text: JSON.stringify({ ...output, forecast: forecast(state) }, null, 2) }], details: output };
+        return { content: [{ type: "text", text: JSON.stringify({ ...output, forecast: forecast(state, observations) }, null, 2) }], details: output };
       }
       try {
         syncClock();
-        const observations = await loadRecentObservations();
+        const history = await loadRecentObservations();
         const ops = (params.ops ?? []) as BatchOp[];
         const applied = applyBatch(state, ops, (estimate) => calibratedBudgetFor(estimate, observations));
         for (const observation of applied.completedObs) await publishObservation(observation);
         state = applied.state;
+        await refreshObservations();
         const completedTask = state.tasks.find((task) => task.id === timing.taskId && task.status === "completed");
         if (completedTask) {
           const completed = applied.completedObs.find((obs) => obs.taskId === completedTask.id);
@@ -108,6 +121,7 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
       updateWidget(ctx);
     }, 30_000);
     checkpointTimer.unref?.();
+    await refreshObservations();
     const restored = reconstructFromSession(ctx);
     if (restored.state) state = restored.state;
     if (restored.timing) {
@@ -128,8 +142,8 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
         if (!ctx.hasUI) return;
         const lines = [
           "Todo ETA",
-          ...renderWidgetLines({ state, paused: !timing.runActive, width: 72 }),
-          `Remaining: ${forecast(state).totalRemainingMin.toFixed(1)} min`,
+          ...renderWidgetLines({ state, paused: !timing.runActive, width: 72, observations }),
+          `Remaining: ${forecast(state, observations).totalRemainingMin.toFixed(1)} min`,
           "Press Escape to close",
         ];
         if (ctx.mode !== "tui") {
