@@ -1,6 +1,6 @@
-import type { Task, TaskState } from "./tasks.ts";
+import type { CompletedObservation, Task, TaskState } from "./tasks.ts";
 
-export const CAL = { window: 200, ramp: 10, minRatio: 0.25, maxRatio: 4 } as const;
+export const CAL = { window: 200, ramp: 3, minRatio: 0.05, maxRatio: 4 } as const;
 export interface Observation { id: string; ts: number; estimateMs: number; actualMs: number }
 export interface TaskForecast { taskId: number; budgetMin: number; remainingMin: number; exceeded: boolean }
 export interface Forecast {
@@ -19,6 +19,17 @@ export function computeCorrection(observations: Observation[]): number {
   const strength = Math.min(1, recent.length / CAL.ramp);
   const ramped = 1 + (median - 1) * strength;
   return Math.min(CAL.maxRatio, Math.max(CAL.minRatio, ramped));
+}
+
+export function abortObservationFor(state: TaskState, nowMs = Date.now()): CompletedObservation | undefined {
+  const task = state.tasks.find((candidate) => candidate.status === "in_progress");
+  if (!task || task.measuredMs <= 0) return undefined;
+  return {
+    taskId: task.id,
+    completedTs: nowMs,
+    estimateMs: task.estimateMin * 60_000,
+    actualMs: task.measuredMs,
+  };
 }
 
 export function calibratedBudgetFor(estimateMin: number, observations: Observation[]): number {
