@@ -12,24 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install
 irm https://raw.githubusercontent.com/lrAlval/pi-agent-setup/main/install.ps1 | iex
 ```
 
-The installer can be rerun safely. Provider authentication stays local and is never included here.
-
-## Layout
-
-Repo directory → live install target:
-
-| Repo dir | Installs to | Notes |
-|---|---|---|
-| `extensions/` | `~/.pi/agent/extensions/` | Extension sources and local extension configs |
-| `agents/` | `~/.pi/agent/agents/` | Subagent definitions |
-| `themes/` | `~/.pi/agent/themes/` | Theme files |
-| `config/` | `~/.pi/agent/` | Live Pi settings (`settings.json`, `hide-providers.json`, `models-store.json`, `caveman.json`, `config.yml`, `spark.json`, `subagents-lite.json`, `efficient-pi-ask-user.json`, `AGENTS.md`, `OPINIONS.md`) |
-| `scripts/` | `~/.pi/agent/scripts/` | Helper scripts |
-| `templates/` | `~/.pi/agent/templates/` | File templates |
-| `patches/` | `~/.pi/agent/patches/` | Patch scripts and records |
-| `skills/` | `~/.agents/skills/` | Shared skills |
-| `skills/<name>/` with a `.pi-target` marker | `~/.pi/agent/skills/<name>/` | Pi-only skills: `agent-routing`, `slice-tasks`, `uix` |
-| `memory/` | `~/.pi/agent/pi-hermes-memory/` (`memory/projects/` → `~/.pi/agent/projects-memory/`) | Portable memory content; credentials and runtime databases are excluded |
+The installer can be rerun safely. Provider authentication stays local and is never included here. It verifies every file against `manifest.lock`, backs up a pre-existing `~/.pi/agent` once, links kit-managed skills from `skills/xias-symlinks.txt`, and installs vendored package dependencies only when `node_modules` is missing. Skills install to `~/.agents/skills/` (pi-only skills install to `~/.pi/agent/skills/`); other repo files install under `~/.pi/agent/`.
 
 ## Skills
 
@@ -160,15 +143,49 @@ The XIAS design skills are kit-managed symlinks listed in `skills/xias-symlinks.
 
 ## Agents
 
-`agents/` contains 25 subagent definitions installed to `~/.pi/agent/agents/`: codebase locators and analyzers (`codebase-locator`, `codebase-analyzer`, `codebase-pattern-finder`, `artifacts-locator`, `artifacts-analyzer`), review and verification agents (`artifact-code-reviewer`, `artifact-coverage-reviewer`, `diff-auditor`, `claim-verifier`, `scope-tracer`, `slice-verifier`, `qa`), research agents (`web-search-researcher`, `bug-detective`, `precedent-locator`, `peer-comparator`, `integration-scanner`, `perf-doctor`, `blast-radius`, `scope-sharpener`), and planning/coordination agents (`foreman`, `scout`, `surveyor`, `sentinel`, `safety-net`, `release-scribe`).
+Subagent definitions live in [`agents`](agents) and install to `~/.pi/agent/agents/`:
+
+- [`artifact-code-reviewer`](agents/artifact-code-reviewer.md) - Reviews finalized artifact code for quality, codebase fit, and actionability.
+- [`artifact-coverage-reviewer`](agents/artifact-coverage-reviewer.md) - Checks that verification notes and precedents are reflected in success criteria or code.
+- [`artifacts-analyzer`](agents/artifacts-analyzer.md) - Deep-dives into research topics.
+- [`artifacts-locator`](agents/artifacts-locator.md) - Finds relevant prior research, designs, plans, and reviews.
+- [`blast-radius`](agents/blast-radius.md) - Maps dependencies and change impact before edits.
+- [`bug-detective`](agents/bug-detective.md) - Finds bug root causes and distinguishes isolated defects from systemic issues.
+- [`claim-verifier`](agents/claim-verifier.md) - Verifies supplied claims against repository evidence.
+- [`codebase-analyzer`](agents/codebase-analyzer.md) - Analyzes implementation details of project components.
+- [`codebase-locator`](agents/codebase-locator.md) - Finds relevant files and components from a human-language prompt.
+- [`codebase-pattern-finder`](agents/codebase-pattern-finder.md) - Finds similar implementations and concrete code patterns.
+- [`diff-auditor`](agents/diff-auditor.md) - Audits patches against supplied surfaces and reports evidence-only findings.
+- [`foreman`](agents/foreman.md) - Handles infrastructure, deployment, networking, and system administration work.
+- [`integration-scanner`](agents/integration-scanner.md) - Finds connections, dependencies, and wiring around a component.
+- [`peer-comparator`](agents/peer-comparator.md) - Compares peer files for mirrored, missing, divergent, or intentionally absent invariants.
+- [`perf-doctor`](agents/perf-doctor.md) - Diagnoses performance issues and produces prioritized, delegation-ready fixes.
+- [`precedent-locator`](agents/precedent-locator.md) - Finds related past changes, follow-up fixes, and lessons.
+- [`qa`](agents/qa.md) - Runs E2E-first verification scenarios and reviews changes after implementation.
+- [`release-scribe`](agents/release-scribe.md) - Writes commit messages, PR descriptions, and changelog entries.
+- [`safety-net`](agents/safety-net.md) - Chooses risk-based tests and writes characterization tests before refactors.
+- [`scope-sharpener`](agents/scope-sharpener.md) - Turns vague requests into testable scope, non-goals, and edge cases.
+- [`scope-tracer`](agents/scope-tracer.md) - Maps research scope and produces focused investigation questions.
+- [`scout`](agents/scout.md) - Researches current external docs and API facts with sources.
+- [`sentinel`](agents/sentinel.md) - Reviews untrusted boundaries for exploitable security issues.
+- [`slice-verifier`](agents/slice-verifier.md) - Audits generated plan slices for contract and decision consistency.
+- [`surveyor`](agents/surveyor.md) - Maps structure and risks in unfamiliar or legacy repositories.
+- [`web-search-researcher`](agents/web-search-researcher.md) - Researches modern or hard-to-find topics and summarizes findings.
 
 ## Themes
 
-`themes/` contains theme files installed to `~/.pi/agent/themes/`, currently `quiet-editorial.json`.
+Custom themes live in [`themes`](themes) and install to `~/.pi/agent/themes/`:
+
+- [`quiet-editorial.json`](themes/quiet-editorial.json) - Quiet editorial theme.
+- [`dayowl.json`](themes/dayowl.json) - Light Day Owl-inspired theme.
+- [`modern-dark.json`](themes/modern-dark.json) - Dark orange and blue-gray theme.
+- [`nightowl.json`](themes/nightowl.json) - Night Owl-inspired theme.
+
+`dayowl`, `modern-dark`, and `nightowl` are vendored from [mitsuhiko/agent-stuff](https://github.com/mitsuhiko/agent-stuff).
 
 ## Support files and utilities
 
-- `config/` - Live Pi settings installed directly to `~/.pi/agent/` (see the layout table).
+- `config/` - Live Pi settings installed directly to `~/.pi/agent/`.
 - `scripts/` - Helper scripts (`session-tool-analyzer.py`, `stack-audit.sh`) installed to `~/.pi/agent/scripts/`.
 - `templates/` - File templates (`prp-plan.md`) installed to `~/.pi/agent/templates/`.
 - `patches/` - Patch scripts and records installed to `~/.pi/agent/patches/`.
@@ -176,10 +193,6 @@ The XIAS design skills are kit-managed symlinks listed in `skills/xias-symlinks.
 - `install.sh` and `install.ps1` - Bash and PowerShell installers.
 - `manifest.lock` - SHA-256 of every vendored file; the installers verify against it. Never hand-edit.
 - `sync-from-live.sh` + `sync-classify.conf` - Vendor vetted changes from live `~/.pi/agent` back into the repo; flat agent config files map to `config/`, and absent-live files are review-only.
-
-## Install
-
-Same one-liners as above; the installer verifies every file against `manifest.lock`, backs up a pre-existing `~/.pi/agent` once, links kit-managed skills from `skills/xias-symlinks.txt`, and installs vendored package dependencies only when `node_modules` is missing. Reruns are safe and converge.
 
 ## Development
 
