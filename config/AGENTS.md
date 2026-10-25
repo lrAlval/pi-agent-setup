@@ -181,3 +181,11 @@ Run `codegraph_explore` before edits or plans; cite evidence for behavior claims
 ## CodeGraph
 Native `codegraph_explore` is only codegraph surface (no MCP codegraph). Trust output; do not re-verify with grep. Staleness banner names edited files → read them. Unindexed → fall back immediately.
 <!-- CODEGRAPH_END -->
+
+## pstack (poteto stack, additive)
+Before selecting models for pstack roles, read `~/.config/pstack/pi/models` if it exists.
+- 49 pstack skills vendored in `skills/` (upstream `theoklitosBam7/pstack-portable`, `no-comments` excluded); all except `harness` are explicit-invoke only (`disable-model-invocation`). Never auto-fire on description match.
+- Entry point: `/poteto-mode` (style) routes skills; `/harness` detects pi adapter; personas `poteto-agent`, `comment-sicko` in `agents/` spawn via `subagent` tool per-task.
+- Overlap precedence: ours `tdd` deleted in favor of `/pstack-tdd`; pstack `teach`/`reflect`/`recall`/`interrogate` stay dormant unless slash-called; ours keep priority on auto-trigger.
+<!-- plan-mode vs poteto-mode precedence: DEFERRED per user — revisit when personalizing; for now plan-mode phases win outside explicit /poteto-mode sessions. -->
+- Model roles/budget come from the config above (quota-max all low); multi-model panels need the `subagent` extension with per-agent model frontmatter.
