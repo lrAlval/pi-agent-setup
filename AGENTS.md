@@ -18,6 +18,13 @@ Installer repo for a personal Pi coding-agent setup. Layout follows the
 install to `~/.pi/agent/`). This file is the **repo** conventions doc — a
 different file, do not merge them.
 
+## Worktree and branch lifecycle
+
+- Every repo-changing session MUST use a fresh isolated treehouse worktree and a new feature branch based on the latest `origin/main`. Fetch `origin/main` before creating the worktree; verify the worktree starts from that commit. Never make repo changes in the shared checkout or continue a task on an existing feature branch.
+- If the current branch's PR is merged or closed, treat that branch as dead for new work: start a new worktree and branch from updated `main`. Preserve closed-unmerged branches and their refs; do not delete them. Branch age alone does not make a branch dead.
+- At session end, commit and push work on the feature branch, create a ready (non-draft) PR or reuse/update the existing PR for that branch, then return the worktree. Follow the PR body template in the `pr` skill: Summary, Evidence, Merge Danger. If work cannot be safely preserved or the required worktree/PR step fails, stop, retain the lease, and report the blocker; never lose work or fall back to the shared checkout.
+- After a PR is verified merged, purge its feature branch locally and from `origin` only when the PR head belongs to this repository. Return any worktree using the branch before deleting the local ref. Never delete unrelated branches or refs.
+
 ## `.pi-target` marker contract
 
 A skill that must live in `~/.pi/agent/skills/` instead of
