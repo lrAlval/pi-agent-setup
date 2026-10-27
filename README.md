@@ -188,6 +188,7 @@ Custom themes live in [`themes`](themes) and install to `~/.pi/agent/themes/`:
 - `config/` - Live Pi settings installed directly to `~/.pi/agent/`.
 - `scripts/` - Helper scripts (`session-tool-analyzer.py`, `stack-audit.sh`) installed to `~/.pi/agent/scripts/`.
 - `templates/` - File templates (`prp-plan.md`) installed to `~/.pi/agent/templates/`.
+- `packages/` - Source-only local Pi extensions, installed to `~/.pi/agent/packages/`. `pi-polish`, `pi-next-prompt`, `pi-away`, and `pi-heads-up` are pinned forks from Pringled's MIT repository; `pi-background-tasks` remains enabled because its process/delegation features exceed `pi-background`'s scope.
 - `patches/` - Patch scripts and records installed to `~/.pi/agent/patches/`.
 - `memory/` - Portable memory content; credentials and runtime databases are excluded.
 - `install.sh` and `install.ps1` - Bash and PowerShell installers.
@@ -199,12 +200,13 @@ Custom themes live in [`themes`](themes) and install to `~/.pi/agent/themes/`:
 ```bash
 bash -n install.sh && bash -n sync-from-live.sh   # syntax check
 bash -c '. ./sync-classify.conf && echo OK'       # classifier loads
+node --experimental-strip-types --test tests/pringled-lifecycle.test.mjs
 ```
 
 After changing any vendored file, regenerate the manifest (from the repo root):
 
 ```bash
-head -n 6 manifest.lock > manifest.lock.tmp && (find extensions agents skills themes config scripts templates patches memory -type f | grep -v 'skills/xias-symlinks.txt' | grep -v '\.pi-target' | sort | xargs sha256sum | sed 's| \./|  |') >> manifest.lock.tmp && mv manifest.lock.tmp manifest.lock
+head -n 6 manifest.lock > manifest.lock.tmp && (find extensions agents skills themes config scripts templates packages patches memory -type f | grep -v 'skills/xias-symlinks.txt' | grep -v '\.pi-target' | sort | xargs sha256sum | sed 's| \./|  |') >> manifest.lock.tmp && mv manifest.lock.tmp manifest.lock
 ```
 
 The regeneration must produce an empty `git diff` when nothing changed. Never hand-edit `manifest.lock`.

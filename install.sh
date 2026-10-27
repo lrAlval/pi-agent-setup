@@ -117,7 +117,8 @@ MANIFEST_SHORT="$(printf '%s' "$MANIFEST_SHA" | cut -c1-12)"
 # skills/ -> ~/.agents/skills/ (except skills with a .pi-target marker -> ~/.pi/agent/skills/).
 dest_for_rel() { # $1 = manifest relpath -> prints live destination
   case "$1" in
-    extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*) printf '%s' "$PI_DIR/$1" ;;
+    config/*) printf '%s' "$PI_DIR/${1#config/}" ;;
+    extensions/*|agents/*|themes/*|scripts/*|templates/*|packages/*) printf '%s' "$PI_DIR/$1" ;;
     memory/projects/*) printf '%s' "$PI_DIR/projects-memory/${1#memory/projects/}" ;;
     memory/*) printf '%s' "$PI_DIR/pi-hermes-memory/${1#memory/}" ;;
     skills/*)
@@ -139,7 +140,7 @@ verify_installed() {
     case "$line" in \#*|"") continue ;; esac
     sha="$(printf '%s' "$line" | awk '{print $1}')"
     rel="$(printf '%s' "$line" | awk '{print $2}')"
-    case "$rel" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|memory/*|skills/*) ;; *) continue ;; esac
+    case "$rel" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|packages/*|memory/*|skills/*) ;; *) continue ;; esac
     [ "$rel" = "skills/xias-symlinks.txt" ] && continue
     case "$rel" in *.pi-target) continue ;; esac
     dest="$(dest_for_rel "$rel")"
@@ -247,7 +248,7 @@ sync_from_manifest() {
     case "$line" in \#*|"") continue ;; esac
     sha="$(printf '%s' "$line" | awk '{print $1}')"
     rel="$(printf '%s' "$line" | awk '{print $2}')"
-    case "$rel" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|memory/*|skills/*) ;; *) continue ;; esac
+    case "$rel" in extensions/*|agents/*|themes/*|config/*|scripts/*|templates/*|packages/*|memory/*|skills/*) ;; *) continue ;; esac
     [ "$rel" = "skills/xias-symlinks.txt" ] && continue
     case "$rel" in *.pi-target) continue ;; esac
     dest="$(dest_for_rel "$rel")"
