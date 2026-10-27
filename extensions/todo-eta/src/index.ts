@@ -5,7 +5,7 @@ import { ActiveClock, type TimingSnapshot } from "./timing.ts";
 import { abortObservationFor, calibratedBudgetFor, forecast, projectFraction, projectRemaining } from "./eta.ts";
 import type { Observation } from "./eta.ts";
 import { loadRecentObservations, publishObservation } from "./history.ts";
-import { renderWidgetLines, truncateToWidth } from "./widget.ts";
+import { renderOverlayLines, renderWidgetLines, truncateToWidth } from "./widget.ts";
 
 const TIMING_ENTRY = "todo-eta-timing";
 const WIDGET_KEY = "todo-eta";
@@ -45,7 +45,7 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
       return;
     }
     ctx.ui.setWidget(WIDGET_KEY, () => ({
-      render: (width) => renderWidgetLines({ state, collapsed, sessionMs: timing.sessionMs, width }),
+      render: (width) => renderWidgetLines({ state, collapsed, observations, width }),
       invalidate: () => {},
     }));
   };
@@ -155,8 +155,9 @@ export default function todoEtaExtension(pi: ExtensionAPI): void {
         if (!ctx.hasUI) return;
         const lines = [
           "Todo ETA",
-          ...renderWidgetLines({ state, sessionMs: timing.sessionMs, width: 72 }),
-          `Remaining: ${forecast(state, observations).totalRemainingMin.toFixed(1)} min`,
+          "",
+          ...renderOverlayLines({ state, observations, width: 72 }),
+          "",
           "Press Escape to close",
         ];
         if (ctx.mode !== "tui") {
