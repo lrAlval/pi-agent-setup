@@ -25,14 +25,15 @@ function strongObservations(): Observation[] {
   return observations;
 }
 
-test("widget renders merged header with counts, ETA, active, ready, blocked within six lines", () => {
+test("widget renders active, ready, blocked, then merged summary within six lines", () => {
   const lines = renderWidgetLines({ state: sampleState() });
-  assert.ok(lines[0].includes("█"));
-  assert.ok(lines[0].includes("Todos 2/5 done"));
-  assert.ok(lines[0].includes(" left") || lines[0].includes("m"));
-  assert.ok(lines.some((line) => line.startsWith("▶ #1 ")));
-  assert.ok(lines.some((line) => line.startsWith("○ #2 ")));
-  assert.ok(lines.some((line) => line.startsWith("↳ #3 ")));
+  const summary = lines.at(-1)!;
+  assert.ok(summary.includes("█"));
+  assert.ok(summary.includes("Todos 2/5 done"));
+  assert.ok(summary.includes(" left") || summary.includes("m"));
+  assert.ok(lines[0].startsWith("▶ #1 "));
+  assert.ok(lines[1].startsWith("○ #2 "));
+  assert.ok(lines[2].startsWith("↳ #3 "));
   assert.ok(lines.length <= 6);
 });
 
@@ -57,44 +58,45 @@ test("collapsed mode is single line with bar, count and ETA", () => {
 test("bar advances with active elapsed fraction and keeps pending work unfilled", () => {
   const state = sampleState();
   state.tasks[0].measuredMs = 150_000;
-  const lines = renderWidgetLines({ state });
-  assert.ok(lines[0].startsWith("████████░░░░░░░░"));
-  assert.ok(lines[0].indexOf("Todos 2/5 done") < lines[0].indexOf("done ·"));
+  const summary = renderWidgetLines({ state }).at(-1)!;
+  assert.ok(summary.startsWith("████████░░░░░░░░"));
+  assert.ok(summary.indexOf("Todos 2/5 done") < summary.indexOf("done ·"));
 });
 
 test("active progress caps at estimate and ignores canceled tasks in denominator", () => {
   const state = sampleState();
   state.tasks[0].measuredMs = 600_000;
   state.tasks[2].status = "cancelled";
-  const lines = renderWidgetLines({ state });
-  assert.ok(lines[0].startsWith("████████████░░░░"));
-  assert.ok(lines[0].includes("2/4 done"));
-  assert.ok(lines[0].includes("(+1 cancelled)"));
+  const summary = renderWidgetLines({ state }).at(-1)!;
+  assert.ok(summary.startsWith("████████████░░░░"));
+  assert.ok(summary.includes("2/4 done"));
+  assert.ok(summary.includes("(+1 cancelled)"));
 });
 
 test("non-positive active estimate contributes no fractional progress", () => {
   const state = sampleState();
   state.tasks[0].estimateMin = 0;
   state.tasks[0].measuredMs = 60_000;
-  const lines = renderWidgetLines({ state });
-  assert.ok(lines[0].startsWith("██████░░░░░░░░░░"));
+  const summary = renderWidgetLines({ state }).at(-1)!;
+  assert.ok(summary.startsWith("██████░░░░░░░░░░"));
 });
 
-test("active row shows budget ratio, elapsed shown only when nonzero", () => {
+test("compact rows show relative weight and omit per-task timing", () => {
   const state = sampleState();
   state.tasks[0].measuredMs = 480_000;
   const lines = renderWidgetLines({ state });
   const active = lines.find((line) => line.startsWith("▶"));
-  assert.ok(active?.includes("8/5m"));
-  const ready = lines.find((line) => line.startsWith("○"));
-  assert.ok(ready && !ready.includes("elapsed"));
+  assert.equal(active, "▶ #1 Active task ..");
+  assert.ok(!active?.includes("8/5m"));
+  assert.ok(!active?.includes("elapsed"));
+  assert.equal(lines.find((line) => line.startsWith("○")), "○ #2 Ready task .");
 });
 
 test("ETA is a band with no observations and a point value when calibrated", () => {
-  const weak = renderWidgetLines({ state: sampleState() });
-  assert.ok(/\d+-\d+m/.test(weak[0]), `expected band in header: ${weak[0]}`);
-  const strong = renderWidgetLines({ state: sampleState(), observations: strongObservations() });
-  assert.ok(/~\d+m/.test(strong[0]), `expected point ETA in header: ${strong[0]}`);
+  const weak = renderWidgetLines({ state: sampleState() }).at(-1)!;
+  assert.ok(/\d+-\d+m/.test(weak), `expected band in header: ${weak}`);
+  const strong = renderWidgetLines({ state: sampleState(), observations: strongObservations() }).at(-1)!;
+  assert.ok(/~\d+m/.test(strong), `expected point ETA in header: ${strong}`);
 });
 
 test("band math is symmetric and collapses to a point at strength 1", () => {
@@ -103,18 +105,60 @@ test("band math is symmetric and collapses to a point at strength 1", () => {
   assert.equal(formatEta(0, 0), "~0m");
 });
 
-test("overlay lists every task grouped with full blocker reason and footer", () => {
+test("overlay lists every task grouped with full blocker reason, timing, and footer", () => {
   const state = sampleState();
+  state.tasks[0].measuredMs = 480_000;
   state.tasks[2].blockerReason = "Needs review findings first";
   const lines = renderOverlayLines({ state, width: 200 });
   const text = lines.join("\n");
   assert.ok(lines[0] === "Todo ETA");
-  assert.ok(text.includes("▶ #1 "));
-  assert.ok(text.includes("○ #2 "));
+  assert.ok(text.includes("▶ #1 Active task · ~0m · 8/5m"));
+  assert.ok(text.includes("○ #2 Ready task · 2-8m"));
   assert.ok(text.includes("↳ #3 "));
   assert.ok(text.includes("blocked: Needs review findings first"));
   assert.ok(text.includes("✓ #4 "));
   assert.ok(text.includes("Remaining:"));
+});
+
+test("weight cues use midpoint median, nearest-rank q75, and shared tie bands", () => {
+  const state = applyBatch(initialTaskState(), [
+    { op: "create", ref: "a", title: "one", estimateMin: 1 },
+    { op: "create", ref: "b", title: "two", estimateMin: 2 },
+    { op: "create", ref: "c", title: "three", estimateMin: 3 },
+    { op: "create", ref: "d", title: "four", estimateMin: 4 },
+    { op: "create", ref: "e", title: "heavy", estimateMin: 8 },
+  ]).state;
+  assert.deepEqual(renderWidgetLines({ state }).slice(0, 5), [
+    "○ #1 one .", "○ #2 two .", "○ #3 three .", "○ #4 four ..", "○ #5 heavy ... heavy",
+  ]);
+
+  const tied = applyBatch(initialTaskState(), [
+    { op: "create", ref: "a", title: "one", estimateMin: 1 },
+    { op: "create", ref: "b", title: "one again", estimateMin: 1 },
+    { op: "create", ref: "c", title: "two", estimateMin: 2 },
+    { op: "create", ref: "d", title: "two again", estimateMin: 2 },
+  ]).state;
+  assert.deepEqual(renderWidgetLines({ state: tied }).slice(0, 4), [
+    "○ #1 one .", "○ #2 one again .", "○ #3 two ..", "○ #4 two again ..",
+  ]);
+});
+
+test("weight cues treat a singleton as light and exclude completed and cancelled tasks", () => {
+  const singleton = applyBatch(initialTaskState(), [
+    { op: "create", ref: "only", title: "Only", estimateMin: 8 },
+  ]).state;
+  assert.equal(renderWidgetLines({ state: singleton })[0], "○ #1 Only .");
+
+  const state = applyBatch(initialTaskState(), [
+    { op: "create", ref: "a", title: "one", estimateMin: 1 },
+    { op: "create", ref: "b", title: "two", estimateMin: 2 },
+    { op: "create", ref: "c", title: "three", estimateMin: 3 },
+    { op: "create", ref: "d", title: "done", estimateMin: 100 },
+    { op: "create", ref: "e", title: "cancelled", estimateMin: 200 },
+  ]).state;
+  state.tasks[3].status = "completed";
+  state.tasks[4].status = "cancelled";
+  assert.equal(renderWidgetLines({ state })[2], "○ #3 three ..");
 });
 
 test("computeCorrection outputs are unchanged by the calibration refactor", () => {

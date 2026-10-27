@@ -29,6 +29,8 @@ export function formatEta(min: number, strength: number): string {
 }
 
 interface TaskView { task: Task; icon: string; remainingMin: number; budgetMin: number }
+interface WeightCutpoints { median: number; q75: number }
+type WeightCue = "." | ".." | "... heavy";
 
 function isReady(task: Task, state: TaskState): boolean {
   return task.status === "pending" && !task.blockerReason && task.deps.every((id) => state.tasks.find((dep) => dep.id === id)?.status === "completed");
@@ -49,6 +51,29 @@ function groupTasks(state: TaskState, observations: Observation[]): { active: Ta
     else groups.blocked.push({ ...viewFor(task), icon: "↳" });
   }
   return groups;
+}
+
+function weightCutpoints(tasks: Task[]): WeightCutpoints | undefined {
+  const estimates = tasks
+    .filter((task) => task.status === "pending" || task.status === "in_progress")
+    .map((task) => task.estimateMin)
+    .sort((a, b) => a - b);
+  if (estimates.length === 0) return undefined;
+  const middle = Math.floor(estimates.length / 2);
+  const median = estimates.length % 2 === 0
+    ? (estimates[middle - 1] + estimates[middle]) / 2
+    : estimates[middle];
+  return { median, q75: estimates[Math.ceil(0.75 * estimates.length) - 1] };
+}
+
+function weightFor(task: Task, cutpoints: WeightCutpoints): WeightCue {
+  if (task.estimateMin <= cutpoints.median) return ".";
+  if (task.estimateMin <= cutpoints.q75) return "..";
+  return "... heavy";
+}
+
+function compactTaskLine(view: TaskView, cue: WeightCue): string {
+  return `${view.icon} #${view.task.id} ${view.task.title} ${cue}`;
 }
 
 function headerLine(state: TaskState, remainingMin: number, strength: number, width: number): string {
@@ -86,13 +111,17 @@ export function renderWidgetLines(input: WidgetInput): string[] {
   const header = headerLine(state, totalRemainingMin, strength, width);
   if (input.collapsed) return [truncateToWidth(header, width)];
   const groups = groupTasks(state, observations);
-  const rows: string[] = [];
-  if (groups.active) rows.push(taskLine(groups.active, true, strength));
-  for (const view of groups.ready) rows.push(taskLine(view, false, strength));
-  for (const view of groups.blocked) rows.push(taskLine(view, false, strength));
-  const result: string[] = [truncateToWidth(header, width)];
-  result.push(...rows.slice(0, 5).map((line) => truncateToWidth(line, width)));
-  return result.slice(0, 6).map((line) => truncateToWidth(line, width));
+  const rowViews = [
+    ...(groups.active ? [groups.active] : []),
+    ...groups.ready,
+    ...groups.blocked,
+  ].slice(0, 5);
+  const cutpoints = weightCutpoints(state.tasks);
+  const rows = rowViews.map((view) => {
+    if (!cutpoints) throw new Error(`Missing weight cutpoints for open task ${view.task.id}`);
+    return truncateToWidth(compactTaskLine(view, weightFor(view.task, cutpoints)), width);
+  });
+  return [...rows, truncateToWidth(header, width)].slice(0, 6);
 }
 
 export function renderOverlayLines(input: WidgetInput): string[] {
