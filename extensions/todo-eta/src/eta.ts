@@ -10,15 +10,19 @@ export interface Forecast {
   subtotalOtherMin: number;
 }
 
-export function computeCorrection(observations: Observation[]): number {
+export function calibration(observations: Observation[]): { ratio: number; strength: number } {
   const recent = observations.slice(-CAL.window).filter((obs) => obs.estimateMs > 0 && obs.actualMs > 0);
-  if (recent.length === 0) return 1;
+  if (recent.length === 0) return { ratio: 1, strength: 0 };
   const ratios = recent.map((obs) => obs.actualMs / obs.estimateMs).sort((a, b) => a - b);
   const mid = Math.floor(ratios.length / 2);
   const median = ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2;
   const strength = Math.min(1, recent.length / CAL.ramp);
   const ramped = 1 + (median - 1) * strength;
-  return Math.min(CAL.maxRatio, Math.max(CAL.minRatio, ramped));
+  return { ratio: Math.min(CAL.maxRatio, Math.max(CAL.minRatio, ramped)), strength };
+}
+
+export function computeCorrection(observations: Observation[]): number {
+  return calibration(observations).ratio;
 }
 
 export function abortObservationFor(state: TaskState, nowMs = Date.now()): CompletedObservation | undefined {

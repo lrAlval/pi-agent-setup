@@ -55,7 +55,7 @@ test("persistent widget exists only during open work while command remains avail
   assert.ok(widgetCalls.length > id);
 
   await commands.get("todo-eta")?.handler("", ctx);
-  assert.match(notifications.at(-1) ?? "", /1\/1 tasks/);
+  assert.match(notifications.at(-1) ?? "", /Todos 1\/1 done/);
 });
 
 test("publishes partial history only when session shutdown reason is quit", async () => {
