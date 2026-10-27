@@ -1,0 +1,198 @@
+import { AssistantMessageComponent, CustomEditor, type ExtensionAPI, UserMessageComponent } from "@earendil-works/pi-coding-agent";
+import { Markdown, MouseRegion, Spacer, Text, truncateToWidth } from "@earendil-works/pi-tui";
+
+const PROMPT = "❯";
+const REPLY = "●";
+const ORANGE = "\x1b[38;2;217;119;87m";
+const DIM = "\x1b[2m";
+const RESET = "\x1b[0m";
+// ✱ rather than ✳, which Windows Terminal draws as a green emoji
+const SPINNER = ["·", "✢", "✱", "✶", "✻", "✽", "✻", "✶", "✱", "✢"].map((f) => `${ORANGE}${f}${RESET}`);
+const LEADING_ESCAPES = /^((?:\x1b\[[0-9;]*m|\x1b\][^\x07]*\x07)*) {2}/;
+const OSC133_START = "\x1b]133;A\x07";
+const OSC133_END = "\x1b]133;B\x07\x1b]133;C\x07";
+const patched = Symbol.for("pi-polish.patched");
+
+function markFirstLine(line: string, marker: string): string {
+	return line.replace(LEADING_ESCAPES, (_m, esc: string) => `${esc}${marker} `);
+}
+
+function patchOnce(proto: any, method: string, wrap: (original: (...args: any[]) => any) => (...args: any[]) => any) {
+	if (!proto || typeof proto[method] !== "function" || proto[method][patched]) return;
+	const replacement: any = wrap(proto[method]);
+	replacement[patched] = true;
+	proto[method] = replacement;
+}
+
+export default function (pi: ExtensionAPI) {
+	try {
+		patchOnce(AssistantMessageComponent.prototype, "updateContent", (original) =>
+			function (this: any, message: any, ...rest: any[]) {
+				// Two columns of padding so reply text lines up behind the ● marker, like tool rows
+				this.outputPad = Math.max(this.outputPad ?? 1, 2);
+				original.call(this, message, ...rest);
+				// Hidden thinking draws nothing instead of a "Thinking..." line plus spacers. Its rows stay in place,
+				// so extensions that read pi's layout, like pi-stereo-view, still match it
+				// A block collapsed by clicking it while thinking is shown keeps its line, so it can be clicked open again
+				const children: any[] = this.hideThinkingBlock ? (this.contentContainer?.children ?? []) : [];
+				children.forEach((child, i) => {
+					if (!(child instanceof MouseRegion) || !((child as any).child instanceof Text)) return;
+					const spacer = [children[i + 1], children[i - 1]].find((c) => c instanceof Spacer);
+					for (const row of [child, spacer]) if (row) row.render = () => [];
+				});
+				// Text blocks are the Markdown children without a default style; thinking blocks carry one
+				for (const child of this.contentContainer?.children ?? []) {
+					if (!(child instanceof Markdown) || (child as any).defaultTextStyle !== undefined || (child as any)[patched]) continue;
+					const render = child.render.bind(child);
+					child.render = (width: number) => {
+						const lines: string[] = render(width);
+						const first = lines.findIndex((l) => l.replace(/\x1b\[[0-9;]*m/g, "").trim());
+						if (first >= 0) lines[first] = markFirstLine(lines[first], REPLY);
+						return lines;
+					};
+					(child as any)[patched] = true;
+				}
+			},
+		);
+
+		// Past prompts: one highlighted line with the ❯ marker instead of a padded three-line box
+		patchOnce(UserMessageComponent.prototype, "rebuild", (original) =>
+			function (this: any) {
+				this.outputPad = Math.max(this.outputPad ?? 1, 2);
+				return original.call(this);
+			},
+		);
+		patchOnce(UserMessageComponent.prototype, "render", (original) =>
+			function (this: any, width: number) {
+				const lines: string[] = original.call(this, width);
+				if (lines.length < 3) return lines;
+				const strip = (l: string) => l.replace(OSC133_START, "").replace(OSC133_END, "");
+				const body = lines.slice(1, -1).map(strip);
+				body[0] = OSC133_START + markFirstLine(body[0], `${DIM}${PROMPT}\x1b[22m`);
+				body[body.length - 1] = body[body.length - 1] + OSC133_END;
+				return body;
+			},
+		);
+	} catch (err) {
+		console.error(`[pi-polish] could not patch message components: ${(err as Error).message}`);
+	}
+
+	// Orange working line: what pi is doing now, elapsed time and output tokens for this run
+	let started = 0;
+	let tokens = 0;
+	let streamed = 0;
+	let phase = "Thinking";
+	let timer: NodeJS.Timeout | undefined;
+	const fmtTokens = (n: number) => (n < 1000 ? `${n}` : `${(n / 1000).toFixed(1)}k`);
+	const show = (ctx: any) => {
+		const secs = Math.round((Date.now() - started) / 1000);
+		const stats = `(${secs}s · ↓ ${fmtTokens(tokens + Math.round(streamed / 4))} tokens)`;
+		ctx.ui.setWorkingMessage(`${ORANGE}${phase}…${RESET} ${DIM}${stats}${RESET}`);
+	};
+	// Just the verb for tools that pi-polish draws as live rows, which already show what is running;
+	// other extensions' tools keep their name, since their rows may not
+	const toolPhase = (name: string) => {
+		switch (name) {
+			case "bash":
+				return "Running";
+			case "read":
+				return "Reading";
+			case "edit":
+				return "Editing";
+			case "write":
+				return "Writing";
+			case "grep":
+			case "find":
+			case "tool_search":
+				return "Searching";
+			case "bg_run":
+				return "Starting a background job";
+			case "questionnaire":
+				return "Waiting for your answer";
+			default:
+				return name.startsWith("mcp__") ? "Calling" : `Running ${name}`;
+		}
+	};
+	pi.on("session_start", async (_event, ctx) => {
+		if (ctx.hasUI) ctx.ui.setWorkingIndicator({ frames: SPINNER, intervalMs: 120 });
+	});
+	pi.on("agent_start", async (_event, ctx) => {
+		if (!ctx.hasUI) return;
+		showTurn(undefined);
+		started = Date.now();
+		tokens = 0;
+		streamed = 0;
+		phase = "Thinking";
+		show(ctx);
+		clearInterval(timer);
+		timer = setInterval(() => show(ctx), 1000);
+	});
+	pi.on("message_update", async (event, ctx) => {
+		if (!ctx.hasUI || event.message.role !== "assistant") return;
+		const parts = (event.message as any).content ?? [];
+		const last = parts[parts.length - 1];
+		phase = last?.type === "text" ? "Responding" : last?.type === "toolCall" ? "Preparing a tool call" : "Thinking";
+		streamed = parts.reduce((n: number, c: any) => n + (c.text?.length ?? c.thinking?.length ?? 0), 0);
+	});
+	pi.on("message_end", async (event) => {
+		if (event.message.role !== "assistant") return;
+		tokens += (event.message as any).usage?.output ?? 0;
+		streamed = 0;
+	});
+	pi.on("tool_execution_start", async (event, ctx) => {
+		if (!ctx.hasUI) return;
+		phase = toolPhase(event.toolName);
+		show(ctx);
+	});
+	pi.on("tool_execution_end", async () => {
+		phase = "Thinking";
+	});
+	pi.on("agent_end", async (_event, ctx) => {
+		clearInterval(timer);
+		timer = undefined;
+		if (!ctx.hasUI) return;
+		ctx.ui.setWorkingMessage();
+		// How long the turn took and when it ended, until the next one starts
+		const secs = Math.round((Date.now() - started) / 1000);
+		const took = secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${secs % 60}s`;
+		const done = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+		showTurn(`✻ Worked for ${took} · done ${done}`);
+	});
+	// A jump in the session tree leaves the turn behind, so its summary goes too
+	pi.on("session_tree", async () => showTurn(undefined));
+	// Set once and updated in place: setting a widget again moves it below the ones other extensions added since,
+	// while the turn line belongs at the top, where the working line was
+	let turnLine: string | undefined;
+	let redrawTurn = () => {};
+	const showTurn = (line: string | undefined) => {
+		turnLine = line;
+		redrawTurn();
+	};
+	pi.on("session_start", async (_event, ctx) => {
+		if (!ctx.hasUI) return;
+		turnLine = undefined;
+		ctx.ui.setWidget("pi-polish-turn", (tui, theme) => {
+			redrawTurn = () => tui.requestRender();
+			return { invalidate() {}, render: (width: number) => (turnLine ? [truncateToWidth(theme.fg("dim", turnLine), width)] : []) };
+		});
+	});
+	pi.on("session_shutdown", async () => clearInterval(timer));
+
+	// ❯ before the input: two columns of editor padding, with the marker drawn into the first content line
+	pi.on("session_start", async (_event, ctx) => {
+		if (!ctx.hasUI) return;
+		const previous = ctx.ui.getEditorComponent();
+		ctx.ui.setEditorComponent((tui, theme, keybindings) => {
+			const editor: any = previous?.(tui, theme, keybindings) ?? new CustomEditor(tui, theme, keybindings);
+			const render = editor.render.bind(editor);
+			editor.render = (width: number) => {
+				// Set on every render because pi may apply its own editor padding setting after creation
+				editor.paddingX = 2;
+				const lines: string[] = render(width);
+				if (lines.length > 1) lines[1] = markFirstLine(lines[1], PROMPT);
+				return lines;
+			};
+			return editor;
+		});
+	});
+}

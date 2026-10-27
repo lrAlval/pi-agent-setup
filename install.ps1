@@ -160,7 +160,8 @@ if ((Test-Path $PiDir) -and (-not $backupTaken)) {
 $beforeChanged = $script:Changed
 function Dest-ForRel {
   param([string]$Rel)
-  if (($Rel -like "extensions/*") -or ($Rel -like "agents/*") -or ($Rel -like "themes/*") -or ($Rel -like "config/*") -or ($Rel -like "scripts/*") -or ($Rel -like "templates/*") -or ($Rel -like "patches/*")) { return (Join-Path $PiDir (($Rel -replace "/", "\"))) }
+  if ($Rel -like "config/*") { return (Join-Path $PiDir (($Rel -replace "^config/", "") -replace "/", "\")) }
+  if (($Rel -like "extensions/*") -or ($Rel -like "agents/*") -or ($Rel -like "themes/*") -or ($Rel -like "scripts/*") -or ($Rel -like "templates/*") -or ($Rel -like "packages/*") -or ($Rel -like "patches/*")) { return (Join-Path $PiDir (($Rel -replace "/", "\"))) }
   if ($Rel -like "memory/projects/*") { return (Join-Path $PiDir ("projects-memory\" + (($Rel -replace "^memory/projects/", "") -replace "/", "\"))) }
   if ($Rel -like "memory/*") { return (Join-Path $PiDir ("pi-hermes-memory\" + (($Rel -replace "^memory/", "") -replace "/", "\"))) }
   if ($Rel -like "skills/*") {
@@ -175,7 +176,7 @@ foreach ($line in (Get-Content $Manifest)) {
   if (($line -like "#*") -or ($line.Trim() -eq "")) { continue }
   $parts = $line -split "\s+"
   $sha = $parts[0]; $rel = $parts[1]
-  if (($rel -notlike "extensions/*") -and ($rel -notlike "agents/*") -and ($rel -notlike "themes/*") -and ($rel -notlike "config/*") -and ($rel -notlike "scripts/*") -and ($rel -notlike "templates/*") -and ($rel -notlike "patches/*") -and ($rel -notlike "memory/*") -and ($rel -notlike "skills/*")) { continue }
+  if (($rel -notlike "extensions/*") -and ($rel -notlike "agents/*") -and ($rel -notlike "themes/*") -and ($rel -notlike "config/*") -and ($rel -notlike "scripts/*") -and ($rel -notlike "templates/*") -and ($rel -notlike "packages/*") -and ($rel -notlike "patches/*") -and ($rel -notlike "memory/*") -and ($rel -notlike "skills/*")) { continue }
   if ($rel -eq "skills/xias-symlinks.txt") { continue }
   if ($rel -like "*.pi-target") { continue }
   $dest = Dest-ForRel $rel
